@@ -1,8 +1,8 @@
 # Quantum Data Center Anomaly Detection
 
-A beginner friendly project that answers one question: **can a small quantum circuit spot problems in data center telemetry, and how does it stack up against the tools teams already use?**
+This project answers one question: **can a small quantum circuit spot problems in data center telemetry, and how does it stack up against the tools teams already use?**
 
-You do not need a quantum background to follow it. If you know basic Python and have seen scikit-learn before, you can read every file in this repo. The quantum parts are explained from scratch in `docs/`.
+It is a working Python package with a fixed comparison protocol, five detectors behind one interface, and a lesson sequence in `docs/` that explains each piece in plain terms. Basic Python and some scikit-learn experience are enough to read every file.
 
 ## The idea in one picture
 
