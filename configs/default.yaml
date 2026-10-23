@@ -1,0 +1,38 @@
+# Default experiment configuration.
+# Every value here maps to a field on a dataclass in qdc_anomaly/config.py.
+# Override any value with: qdc benchmark --config configs/default.yaml --set quantum.n_layers=3
+
+data:
+  n_racks: 8            # number of simulated server racks
+  n_steps: 1440         # time steps per rack (1440 x 1 minute = one day)
+  step_minutes: 1       # sampling interval
+  anomaly_fraction: 0.08  # fraction of time steps that fall inside an injected fault
+  seed: 7
+
+features:
+  window_size: 10       # time steps per sliding window
+  stride: 2             # step between consecutive windows
+  n_components: 4       # PCA output dimension; equals the number of qubits used
+
+detectors:
+  # Order here is the order in the benchmark table.
+  - isolation_forest
+  - one_class_svm
+  - pca_reconstruction
+  - quantum_kernel_svm
+  - quantum_autoencoder
+
+quantum:
+  n_qubits: 4
+  n_layers: 2           # entangling layers in the kernel feature map / autoencoder
+  n_latent: 2           # autoencoder latent qubits; trash qubits = n_qubits - n_latent
+  epochs: 60
+  batch_size: 32
+  learning_rate: 0.05
+  device: default.qubit
+
+benchmark:
+  n_train: 160          # normal windows used for fitting (kept small so the kernel runs in minutes)
+  n_test: 400           # windows scored; mixed normal and anomalous
+  seeds: [0, 1, 2]
+  output_dir: results
