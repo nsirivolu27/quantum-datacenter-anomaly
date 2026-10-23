@@ -1,29 +1,36 @@
 # Quantum Data Center Anomaly Detection
 
-A study repository that asks one concrete question: **can near term quantum machine learning detect faults in data center telemetry, and how does it compare to the classical tools an SRE team already uses?**
+A beginner friendly project that answers one question: **can a small quantum circuit spot problems in data center telemetry, and how does it stack up against the tools teams already use?**
 
-It is built as a real Python package, not a notebook dump. Every detector implements the same two method interface, every method is scored on identical features with identical protocol, and the lesson sequence in `docs/` walks from problem framing to running on real hardware.
+You do not need a quantum background to follow it. If you know basic Python and have seen scikit-learn before, you can read every file in this repo. The quantum parts are explained from scratch in `docs/`.
+
+## The idea in one picture
 
 ```
-telemetry  ->  sliding windows  ->  scale + PCA to n_qubits  ->  detector  ->  anomaly score
-                                                                |
-                      isolation forest / one class SVM / PCA ---+--- quantum kernel SVM / quantum autoencoder
+rack metrics   ->   10 minute windows   ->   4 numbers per window   ->   detector   ->   anomaly score
+(cpu, temp, fan, ...)                                                       |
+                                          classical:  isolation forest, one class SVM, PCA
+                                          quantum:    quantum kernel SVM, quantum autoencoder
 ```
 
-## Why this problem
+Every detector gets the same four numbers and is scored the same way. So any difference in the results comes from the detector, not from the data prep.
 
-Data centers emit a constant stream of per rack metrics: CPU, memory, inlet temperature, fan speed, power, network, disk. Faults show up as subtle joint shifts across several of them before any single threshold trips. That makes it a natural anomaly detection problem, and the low dimensional, dense, continuous nature of the data makes it a realistic fit for today's small quantum circuits. Both quantum detectors here run on 4 qubits.
+## Why data centers
+
+Every server rack reports CPU, memory, temperature, fan speed, power, network and disk. Problems like a dying fan or a memory leak do not trip a simple threshold; they show up as the *relationship* between metrics going wrong (temperature too high for the current power draw, for example). That is an anomaly detection problem.
+
+It is also a good fit for today's small quantum computers: the data is a few continuous numbers, which maps directly onto a few qubits. Both quantum models here use 4 qubits.
 
 ## Quick start
 
-Terminal (any shell, from the repo root):
+Terminal (PowerShell or bash, from the repo folder):
 
 ```bash
 pip install -e ".[dev,plots]"
-make test-fast          # classical, data, metrics, CLI tests; a few seconds
-make test               # adds the quantum circuit tests; about a minute
-make benchmark-quick    # small end to end run, couple of minutes on a laptop
-make benchmark          # full default config, writes results/report.md
+make test-fast          # classical tests, a few seconds
+make test               # adds the quantum tests, about a minute
+make benchmark-quick    # small end to end run, a couple of minutes
+make benchmark          # full run, writes results/report.md
 ```
 
 Or with Docker:
@@ -35,53 +42,49 @@ docker run --rm -v "$PWD/results:/app/results" qdc-anomaly
 
 ## What is inside
 
-| Path | What you learn there |
+| Folder | What it does |
 |---|---|
-| `src/qdc_anomaly/data/synthetic.py` | A physically motivated telemetry simulator with five labeled fault modes |
-| `src/qdc_anomaly/data/cloudwatch.py` | Loading the same frame layout from Amazon CloudWatch |
-| `src/qdc_anomaly/features/` | Windowing a time series, then scaling and PCA down to one angle per qubit |
-| `src/qdc_anomaly/detectors/classical.py` | Isolation forest, RBF one class SVM, PCA reconstruction |
-| `src/qdc_anomaly/detectors/quantum_kernel.py` | Quantum kernel via the adjoint trick, fed to a precomputed kernel one class SVM |
-| `src/qdc_anomaly/detectors/quantum_autoencoder.py` | Variational quantum autoencoder scored by trash qubit purity |
-| `src/qdc_anomaly/evaluation/` | ROC AUC, PR AUC, metrics at a fixed alert budget, per fault recall, the benchmark protocol |
-| `configs/default.yaml` | Every knob in one place |
-| `docs/` | The lesson sequence |
-| `tests/` | What "correct" means for each module |
+| `src/qdc_anomaly/data/` | Makes fake but realistic telemetry with labeled faults; loads real data from CloudWatch |
+| `src/qdc_anomaly/features/` | Turns the time series into windows and shrinks each window to 4 numbers |
+| `src/qdc_anomaly/detectors/` | The five detectors, all with the same `fit` and `score` methods |
+| `src/qdc_anomaly/evaluation/` | Scoring and the benchmark that compares everything |
+| `configs/default.yaml` | Every setting in one file |
+| `docs/` | The lessons, in order |
+| `notebooks/walkthrough.ipynb` | The whole pipeline in one notebook |
+| `tests/` | Checks that each piece does what it says |
 
-## The lesson sequence
+## Lessons
 
-Read in order; each lesson points at the code it explains.
+Read these in order. Each one is short and points at the code it explains.
 
-1. [Problem framing](docs/01-problem-framing.md): what data center anomaly detection is and why it suits small quantum circuits
-2. [Telemetry simulation](docs/02-telemetry-simulation.md): the simulator, the fault modes, and why labels matter
-3. [Features for qubits](docs/03-features-for-qubits.md): windows, PCA, angle encoding, and the periodicity trap
-4. [Classical baselines](docs/04-classical-baselines.md): what the quantum methods have to beat
-5. [Quantum kernels](docs/05-quantum-kernels.md): the adjoint trick, data re uploading, kernel SVMs
-6. [Quantum autoencoder](docs/06-quantum-autoencoder.md): trash qubits, variational training, barren plateaus
-7. [Honest benchmarking](docs/07-honest-benchmarking.md): the protocol, the metrics, and how to read the report
-8. [Running on hardware](docs/08-running-on-hardware.md): swapping the simulator for Amazon Braket or IBM, shots, noise, cost
+1. [What problem are we solving](docs/01-problem-framing.md)
+2. [How the fake telemetry is made](docs/02-telemetry-simulation.md)
+3. [Getting the data ready for qubits](docs/03-features-for-qubits.md)
+4. [The classical detectors](docs/04-classical-baselines.md)
+5. [Quantum kernels, explained simply](docs/05-quantum-kernels.md)
+6. [The quantum autoencoder](docs/06-quantum-autoencoder.md)
+7. [Comparing fairly](docs/07-honest-benchmarking.md)
+8. [Running on a real quantum computer](docs/08-running-on-hardware.md)
 
 ## Command line
 
 ```bash
-qdc generate  --out data/telemetry.csv                      # synthetic dataset
-qdc benchmark --config configs/default.yaml                 # full comparison
+qdc generate  --out data/telemetry.csv                       # make a dataset
+qdc benchmark --config configs/default.yaml                  # compare all detectors
 qdc benchmark --detectors isolation_forest quantum_autoencoder --set quantum.epochs=20
 qdc score     --input data/telemetry.csv --detector quantum_kernel_svm --out results/scores.csv
 ```
 
-Any config value can be overridden with `--set section.key=value`.
+Change any setting with `--set section.key=value`.
 
-## Extending
+## Adding your own detector
 
-Add a detector in three steps: subclass `AnomalyDetector` (two methods, `fit` and `score`), register it in `detectors/__init__.py`, add a test. It will appear in the CLI and the benchmark table automatically.
+Subclass `AnomalyDetector` (two methods: `fit` and `score`), add it to the list in `detectors/__init__.py`, write one test. It then shows up in the CLI and the benchmark automatically.
 
-To run against a real fleet, replace `generate_telemetry` with `load_cloudwatch` (see `docs/08-running-on-hardware.md` for the Braket side).
+## What to expect
 
-## Honest expectations
-
-The quantum detectors here are not expected to beat the classical baselines on a simulator, and the benchmark is set up so that if they do not, the table says so. The point of the repository is to make the comparison rigorous and readable, so you can see exactly where a quantum feature map helps, where it does not, and what it costs.
+The quantum models are not expected to beat the classical ones on a laptop simulator. The goal is a fair, readable comparison so you can see where a quantum approach helps, where it does not, and what it costs in time.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT.

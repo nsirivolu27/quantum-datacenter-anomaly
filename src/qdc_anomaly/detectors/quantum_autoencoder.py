@@ -1,24 +1,21 @@
-"""Variational quantum autoencoder for anomaly detection.
+"""Quantum autoencoder for anomaly detection.
 
-A classical autoencoder squeezes data through a narrow bottleneck and scores
-anomalies by reconstruction error: normal data was seen in training and
-compresses well, anomalies do not.
+A classical autoencoder compresses data and scores anomalies by how badly
+the compression went.  The quantum version does the same with qubits:
 
-The quantum version (Romero, Olson, Aspuru-Guzik 2017) does the same thing
-with qubits.  We encode a window into ``n_qubits`` qubits, apply a trainable
-circuit U(theta), and split the register into
+    1. load the window onto n_qubits qubits
+    2. apply a trainable circuit
+    3. split the qubits into "latent" (keep) and "trash" (should read 0)
 
-    latent qubits   keep the compressed information
-    trash qubits    should be pushed to |0> if compression succeeded
+Training adjusts the circuit so that on normal data the trash qubits read 0
+as often as possible.  The anomaly score for a new window is how often a
+trash qubit reads 1: if the circuit cannot squeeze the window into the
+latent qubits, it has not seen anything like it before.
 
-Training minimises the probability that any trash qubit reads 1 on normal
-data.  At inference the anomaly score is exactly that probability: if the
-circuit cannot drive the trash qubits to |0> for a window, it has seen
-something it was not trained on.
+There is no decoder.  Quantum circuits run backwards exactly, so a perfect
+encoder is automatically a perfect decoder.
 
-This skips the explicit decoder.  Because quantum gates are reversible, a
-perfect encoder implies a perfect decoder (just run U(theta) backwards), so
-the trash qubit purity alone measures reconstruction quality.
+See docs/06-quantum-autoencoder.md for the full walkthrough.
 """
 
 from __future__ import annotations

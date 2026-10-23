@@ -1,46 +1,44 @@
-# 8. Running on hardware
+# 8. Running on a real quantum computer
 
-Everything so far ran on `default.qubit`, PennyLane's exact statevector simulator. This lesson covers moving to a faster simulator, then to a real quantum processor, and what changes when you do.
+So far everything ran on `default.qubit`, PennyLane's built in simulator. This lesson covers a faster simulator, then real devices, and what changes when you switch.
 
-## Step 1: a faster simulator
+## A faster simulator
 
 ```bash
 pip install pennylane-lightning
 qdc benchmark --set quantum.device=lightning.qubit
 ```
 
-`lightning.qubit` is a C++ statevector simulator with the same semantics as `default.qubit`, typically several times faster. Nothing else changes. Use it for any run with more than a handful of qubits.
+Same results, usually several times faster. Use it for anything bigger than the defaults.
 
-## Step 2: shot noise on the simulator
+## Simulating measurement noise
 
-Real devices do not return probabilities; they return samples. Add `shots` to the device to simulate that:
+A real device does not give you exact probabilities. It runs the circuit many times (called shots) and counts. You can simulate that:
 
 ```python
 dev = qml.device("default.qubit", wires=4, shots=1000)
 ```
 
-The device string in the config does not carry shots, so for this experiment edit `QuantumKernelSVMDetector.__init__` or expose a `shots` field in `QuantumConfig` (a good first pull request).
+The config does not have a shots field yet; adding one to `QuantumConfig` is a good first contribution. What you will see:
 
-What to expect:
+- kernel values jitter by roughly 1 over the square root of shots
+- the SVM gets less stable; you may need to raise `nu`
+- autoencoder training gets noisier; lower the learning rate
 
-- the kernel matrix becomes noisy; `k(x, x)` is still 1 but off diagonal entries jitter by about `1/sqrt(shots)`
-- the one class SVM becomes less stable; `nu` may need raising
-- autoencoder gradients become noisy; Adam copes, but lower the learning rate
+A noisy kernel matrix can stop being mathematically valid for an SVM. PennyLane has `qml.kernels.closest_psd_matrix` to repair it. Read about that before trusting any hardware kernel result.
 
-A kernel matrix that is no longer positive semidefinite is a real failure mode. PennyLane's `qml.kernels.threshold_matrix` and `closest_psd_matrix` are the fixes; read about them before trusting any hardware kernel result.
-
-## Step 3: Amazon Braket
+## Amazon Braket
 
 ```bash
 pip install amazon-braket-pennylane-plugin
 ```
 
-Then in Python, with AWS credentials configured:
+With AWS credentials set up:
 
 ```python
 import pennylane as qml
 
-# Managed simulator: fast, cheap, pay per task
+# Managed simulator on AWS: cheap, pay per task
 dev = qml.device(
     "braket.aws.qubit",
     device_arn="arn:aws:braket:::device/quantum-simulator/amazon/sv1",
@@ -49,7 +47,7 @@ dev = qml.device(
     s3_destination_folder=("your-bucket", "qdc-anomaly"),
 )
 
-# A real QPU: pick one from the Braket console, check its availability window
+# A real device: pick one in the Braket console and check its hours
 dev = qml.device(
     "braket.aws.qubit",
     device_arn="arn:aws:braket:us-east-1::device/qpu/ionq/Aria-1",
@@ -59,13 +57,13 @@ dev = qml.device(
 )
 ```
 
-`QuantumConfig.device` accepts any PennyLane device name, but Braket devices need extra arguments, so construct the device yourself and pass it in, or extend `QuantumConfig` with `device_kwargs`. Both detectors take the device from `qml.device(config.device, wires=...)` in one place, so the change is small.
+Both detectors create their device in one place (`qml.device(config.device, wires=...)`), so pointing them at a Braket device is a small change.
 
-Cost model: Braket bills per task plus per shot. A kernel matrix for 160 training points is about 12,700 circuits; at 1000 shots each that is a meaningful bill on a QPU and a small one on SV1. Start with SV1, then run **one scoring pass** (not training) on a QPU with a kernel fit on the simulator.
+Cost: Braket charges per task plus per shot. A kernel matrix for 160 training windows is about 12,700 circuits. On the SV1 simulator that is cheap; on a real device it adds up. The practical approach is to fit on a simulator and send only a small scoring batch to the real device.
 
-The CloudWatch loader in `data/cloudwatch.py` uses the same AWS credentials, so a Braket plus CloudWatch pipeline lives entirely in one account.
+The CloudWatch loader uses the same AWS credentials, so data loading and quantum scoring can live in one account.
 
-## Step 4: IBM Quantum
+## IBM Quantum
 
 ```bash
 pip install pennylane-qiskit
@@ -75,23 +73,21 @@ pip install pennylane-qiskit
 dev = qml.device("qiskit.remote", wires=4, backend=backend, shots=1000)
 ```
 
-where `backend` comes from `QiskitRuntimeService`. Same caveats as Braket.
+where `backend` comes from `QiskitRuntimeService`. Same advice as Braket.
 
-## What actually changes on hardware
+## What changes on real hardware
 
-1. **Noise.** Gate errors of around 0.1 to 1 percent compound across the circuit. The adjoint trick doubles circuit depth, so the quantum kernel is more exposed than the autoencoder. Expect `k(x, x)` to come back around 0.8 to 0.95 instead of 1 and normalise accordingly.
-2. **Connectivity.** The CNOT ring assumes any qubit can talk to its neighbour. Transpilation will insert SWAPs on devices where it cannot. Check the compiled depth.
-3. **Latency.** A QPU task takes seconds to minutes to schedule. The kernel matrix must be batched into as few tasks as possible. Braket and Qiskit both support batching circuits in one task; use it.
-4. **Determinism.** Tests that assert exact values will fail. Loosen tolerances to a few times `1/sqrt(shots)` for hardware runs.
+1. **Noise.** Each gate has a small error and they add up. The kernel circuit runs the loading circuit twice, so it is more exposed than the autoencoder. Expect a point's similarity to itself to come back around 0.8 to 0.95 instead of 1.
+2. **Layout.** Our circuit links each qubit to its neighbour in a ring. Not every device supports that directly; the compiler will add extra gates. Check the compiled depth.
+3. **Waiting.** A real device task takes seconds to minutes to schedule. Send circuits in batches, not one at a time.
+4. **Exact tests fail.** Loosen tolerances to a few times 1 over the square root of shots.
 
-## The realistic deployment story today
+## A realistic way to use this today
 
-Fit everything on a simulator. Store the training set and the SVM. Periodically, send a batch of recent windows to a QPU for scoring, compare to the simulator's scores for the same windows, and log the disagreement. That gives you a running measurement of how far hardware is from the ideal kernel, which is the number anyone deciding whether to invest in this will ask for.
+Fit everything on a simulator and save the model. Every so often, send a batch of recent windows to a real device for scoring, compare against the simulator's scores for the same windows, and log the difference. That running number tells you how far hardware is from ideal, which is exactly what someone deciding whether to invest will ask.
 
 ## Further reading
 
-- Havlicek et al., "Supervised learning with quantum enhanced feature spaces", Nature 2019 (quantum kernels)
+- Havlicek et al., "Supervised learning with quantum enhanced feature spaces", Nature 2019
 - Romero, Olson, Aspuru-Guzik, "Quantum autoencoders for efficient compression of quantum data", 2017
-- Schuld and Killoran, "Quantum machine learning in feature Hilbert spaces", PRL 2019
-- McClean et al., "Barren plateaus in quantum neural network training landscapes", Nat. Commun. 2018
-- PennyLane documentation: kernels module, Braket plugin, Qiskit plugin
+- PennyLane docs: kernels module, Braket plugin, Qiskit plugin

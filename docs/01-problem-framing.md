@@ -1,45 +1,48 @@
-# 1. Problem framing
+# 1. What problem are we solving
 
-## What a data center operator actually wants
+## The situation
 
-A modern data center hall holds hundreds of racks. Each rack reports a handful of metrics every few seconds: CPU and memory utilisation, inlet air temperature, fan speed, power draw, network throughput, disk IOPS. Monitoring stacks (CloudWatch, Prometheus, Datadog, DCIM tools) already alert on static thresholds: "page someone if inlet temperature exceeds 32 C".
+A data center has hundreds of server racks. Each one reports a few numbers every minute:
 
-Static thresholds miss the interesting failures. A fan that is slowly dying does not trip a threshold; it shows up as temperature drifting a few degrees above what the current power draw should produce. A memory leak looks fine until the hour it falls over. A misconfigured switch pins network traffic high while CPU barely moves. These are **joint** anomalies: no single metric is out of range, but the relationship between metrics is wrong.
+- CPU and memory usage
+- inlet air temperature
+- fan speed
+- power draw
+- network and disk activity
 
-That is the job of anomaly detection: learn what the joint distribution of normal operation looks like, then score how far a new observation falls from it.
+Monitoring tools already raise alarms when one number crosses a line, like "temperature above 32 C". That catches the obvious stuff. It misses the slow problems:
 
-## Why this is semi supervised
+- a fan that is wearing out, so temperature drifts a little higher than it should for the current power draw
+- a memory leak that looks fine right up until the server falls over
+- a switch misconfiguration that pins network traffic high while CPU stays low
 
-Operators have mountains of normal data and very few labeled faults. So the realistic setup is:
+In every one of those, no single number is out of range. What is wrong is the *relationship* between numbers. Catching that is called **anomaly detection**.
 
-- fit on data believed to be normal
-- score new data
-- flag the top fraction as alerts, where the fraction is set by how many pages a team can absorb
+## How anomaly detection works here
 
-Everything in this repository follows that shape. Detectors expose `fit(X_normal)` and `score(X)`. Thresholding happens only in evaluation.
+We almost never have labeled examples of faults, but we have endless examples of normal operation. So the approach is:
 
-## Why it suits small quantum circuits
+1. show the model lots of normal data
+2. ask it to score new data by how unusual it looks
+3. look at the highest scores first
 
-Quantum machine learning on current hardware is limited to a few dozen noisy qubits, and simulators used for research get slow past ten to fifteen. That rules out images and text. It does not rule out telemetry:
+Every detector in this repo has the same two methods: `fit(normal_data)` and `score(new_data)`. A higher score means more unusual.
 
-- the data is dense and continuous, which maps directly onto rotation angles
-- the useful signal is low dimensional (after PCA, four components keep most of the variance of the windowed features)
-- the problem is a similarity or compression problem, and both quantum kernels and quantum autoencoders are exactly that
+## Why a quantum computer might help
 
-So telemetry anomaly detection is one of the few industrially relevant problems where a 4 qubit circuit is not a toy reduction of the real thing. It is close to the real thing.
+Quantum computers today are small (a few dozen qubits) and noisy. That rules out big problems like images or text. But telemetry is small: after a little preprocessing, each minute of data is just 4 numbers. That fits on 4 qubits.
 
-## What "potentially usable in a data center now" means here
+Two quantum ideas are tested here:
 
-Three things are true today:
+- **Quantum kernel**: use a quantum circuit to measure how similar two windows of data are, then hand that similarity to a normal classical model.
+- **Quantum autoencoder**: train a circuit to compress normal data. If it cannot compress a new window, that window is unusual.
 
-1. The classical baselines in this repository run in milliseconds and could be deployed as is.
-2. The quantum kernel SVM runs on a simulator in minutes for a few hundred windows and could be run on cloud QPUs (Braket, IBM) for a scoring pass, at a cost per circuit.
-3. Nobody should expect a speedup. The research question is whether the quantum feature map produces a better **similarity measure** or **compression** for this kind of data. The benchmark is designed to answer that fairly.
+Neither is expected to be faster. The question is whether they produce a *better* notion of "unusual" for this kind of data. The benchmark is built to answer that fairly.
 
-## What you will be able to do after the sequence
+## What you will be able to do after the lessons
 
-- generate labeled telemetry with realistic correlated faults
-- turn a time series into qubit ready features and know the pitfalls
-- implement a quantum kernel and a variational autoencoder in PennyLane
-- run a fair semi supervised benchmark and read its report critically
-- swap the simulator for a real device
+- generate realistic telemetry with known faults
+- prepare time series data for a quantum circuit
+- build a quantum kernel and a quantum autoencoder in PennyLane
+- run a fair comparison and read the results
+- swap the simulator for a real quantum device

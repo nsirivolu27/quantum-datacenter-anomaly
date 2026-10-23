@@ -1,74 +1,73 @@
-# 5. Quantum kernels
+# 5. Quantum kernels, explained simply
 
 Code: `src/qdc_anomaly/detectors/quantum_kernel.py`
 
-## The one idea
+## The idea
 
-A kernel method never touches raw features. It only needs a similarity `k(x, x')` between pairs of points. The algorithm (here a one class SVM) is entirely classical and convex; the kernel is where you inject structure.
+A one class SVM does not look at your data directly. It only needs to know, for any two points, **how similar are they?** That function is called a kernel.
 
-A quantum computer gives a natural similarity. Encode `x` into a quantum state `|phi(x)>` with a fixed circuit. Do the same for `x'`. Then
+The classical version says two points are similar if they are close together. The quantum version:
 
-```
-k(x, x') = |<phi(x') | phi(x)>|^2
-```
+1. load point A onto 4 qubits with a small circuit
+2. load point B the same way
+3. measure how much the two resulting quantum states overlap
 
-is the squared overlap of the two states: 1 when identical, 0 when orthogonal, and always a valid kernel because it is an inner product in the Hilbert space of the circuit.
+Overlap is 1 if the points are identical and 0 if the states are completely different. That number is the kernel.
 
-## The adjoint trick
+The SVM then does everything else, exactly as before. The quantum computer only answers "how similar?" questions. This is why kernel methods are the most practical quantum approach right now: the hard optimisation stays classical.
 
-You cannot read out an inner product directly. The trick:
+## How overlap is measured
 
-1. run the encoding circuit `U(x)`
-2. run the inverse encoding circuit `U(x')^dagger`
-3. measure all qubits; the probability of `|00...0>` is exactly `|<phi(x')|phi(x)>|^2`
+You cannot read overlap off a quantum computer directly. The trick:
 
-If `x == x'` the two circuits cancel and you land on `|00...0>` with probability 1. The implementation is three lines:
+1. run the loading circuit for point A
+2. run the loading circuit for point B **backwards**
+3. check whether every qubit is back at 0
+
+If A and B are the same, step 2 exactly undoes step 1 and you get all zeros every time. The more different they are, the less often you get all zeros. The fraction of all zeros is the overlap.
+
+In code it is three lines:
 
 ```python
 @qml.qnode(device)
 def overlap_circuit(x1, x2):
     feature_map(x1, wires, n_layers)
-    qml.adjoint(feature_map)(x2, wires, n_layers)
-    return qml.probs(wires=wires)
+    qml.adjoint(feature_map)(x2, wires, n_layers)   # the same circuit, backwards
+    return qml.probs(wires=wires)                    # probs[0] is "all zeros"
 ```
 
-`kernel(x1, x2)` returns `probs[0]`.
-
-## The feature map
+## The loading circuit
 
 ```python
-for _ in range(n_layers):
-    RY(x_i) on every qubit         # load the data
-    CNOT ring                      # entangle neighbours
-    RZ(x_i) on every qubit         # load the data again
+for each layer:
+    rotate each qubit by its feature value        (RY)
+    link each qubit to its neighbour              (CNOT ring)
+    rotate each qubit by its feature value again  (RZ)
 ```
 
-Loading the same data in several layers is **data re uploading**. One rotation per qubit gives a kernel that is a product of cosines, which classical kernels can already express. Re uploading with entanglement in between gives a kernel that is much harder to write down classically, which is the whole point.
+Loading the same numbers more than once, with linking steps in between, is called **data re uploading**. One rotation per qubit gives a similarity function classical kernels can already copy. Repeating with links between qubits gives one they cannot easily copy, which is the point.
 
-`n_layers=2` is the default. More layers make the kernel sharper (points look less similar) and slower. Try 1 and 3 and watch the kernel matrix.
+`n_layers` is in the config. Two is the default. More layers make the kernel pickier (fewer points look similar) and slower.
 
-## Where the cost goes
+## What it costs
 
-Fitting on `n` points needs the `n x n` kernel matrix: `n(n-1)/2` circuit runs (symmetric, diagonal is 1). Scoring `m` points needs `m x n` more. With `n=160, m=400` that is about 77,000 circuits per seed on a statevector simulator, a few minutes on a laptop. On a real device every circuit costs shots and money, which is why kernel methods on hardware stay small.
+Fitting on N training windows needs about N squared over 2 circuit runs. Scoring M windows needs M times N more. With the default 160 and 400 that is roughly 77,000 circuit runs per seed, a few minutes on a laptop simulator. On a real device every run costs money, which is why these stay small.
 
-PennyLane's `qml.kernels.square_kernel_matrix` and `kernel_matrix` do the bookkeeping. `assume_normalized_kernel=True` skips computing the diagonal.
+## Reading the results
 
-## Reading the result
+Compare `quantum_kernel_svm` with `one_class_svm`. They are the same algorithm with a different kernel.
 
-`QuantumKernelSVMDetector` and `OneClassSVMDetector` are the same algorithm with different kernels. Compare their rows in the benchmark table:
+- quantum higher: the quantum similarity suits this data better
+- classical higher: the ordinary kernel was already a good fit
+- about the same: the limit is the 4 numbers going in, not the kernel
 
-- quantum higher: the quantum feature map produced a more useful similarity for this data
-- classical higher: the RBF kernel was already a good fit and the quantum map added nothing (or hurt, usually by being too sharp)
-- similar: the bottleneck is the four PCA features, not the kernel
+All three outcomes teach you something. Write down which one you got and why you think so.
 
-All three outcomes are informative. Write down which one you see and why you think so before reading lesson 7.
+## Sanity checks
 
-## Sanity checks you should run
-
-The tests in `tests/test_quantum.py` check that `k(x, x) = 1`, that `k` is symmetric and in `[0, 1]`, and that the batched kernel matrix matches pairwise evaluation. If you change the feature map, run them first.
+`tests/test_quantum.py` checks that a point is 100 percent similar to itself, that similarity is symmetric, and that it stays between 0 and 1. If you edit the loading circuit, run them first.
 
 ## Going further
 
-- **Kernel alignment**: make the feature map trainable (add rotation parameters) and optimise it to separate normal from anomalous windows. PennyLane's `qml.kernels.target_alignment` is the tool.
-- **Projected quantum kernels**: measure local observables instead of the full overlap; cheaper on hardware and often as good.
-- **Shot noise**: set `shots=1000` on the device and watch the kernel matrix become noisy. Lesson 8 covers this.
+- Make the loading circuit trainable and optimise it to separate normal from faulty windows (PennyLane calls this kernel alignment).
+- Add `shots=1000` to the device to see what measurement noise does to the kernel (lesson 8).

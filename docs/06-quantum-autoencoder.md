@@ -1,57 +1,57 @@
-# 6. Quantum autoencoder
+# 6. The quantum autoencoder
 
 Code: `src/qdc_anomaly/detectors/quantum_autoencoder.py`
 
-## The one idea
+## The idea
 
-A classical autoencoder squeezes data through a bottleneck and scores anomalies by reconstruction error. Normal data was seen during training and compresses well; anomalies do not.
+A classical autoencoder squeezes data through a narrow bottleneck and then tries to rebuild it. Normal data, which it trained on, rebuilds well. Unusual data does not. The rebuild error is the anomaly score.
 
-The quantum version (Romero, Olson, Aspuru-Guzik, 2017) does the same with qubits:
+The quantum version does the same thing with qubits:
 
-```
-|x>  --[ U(theta) ]-->  latent qubits (keep)  +  trash qubits (should be |0>)
-```
+1. load the 4 numbers onto 4 qubits
+2. apply a trainable circuit
+3. split the qubits into 2 **latent** qubits (keep) and 2 **trash** qubits (should be empty)
 
-Train `U(theta)` so that on normal data the trash qubits end up in `|0>`. If compression succeeded, all the information fits in the latent qubits and the trash is empty.
+"Empty" means the trash qubit reads 0 when measured. Training adjusts the circuit so that, on normal data, the trash qubits read 0 as often as possible. All the information gets pushed into the latent qubits.
 
-At inference, the anomaly score is the probability that a trash qubit reads `|1>`. A window the circuit cannot compress is a window it did not see in training.
+At scoring time, the anomaly score is simply **how often a trash qubit reads 1**. If the circuit cannot push a window into 2 qubits, that window is unlike the training data.
 
 ## Why there is no decoder
 
-Quantum gates are reversible. If `U(theta)` maps normal data to `latent (x) |0...0>`, then `U(theta)^dagger` applied to `latent (x) |0...0>` recovers the input exactly. A perfect encoder implies a perfect decoder for free, so trash qubit purity alone measures reconstruction quality. You never need to build or run the decoder.
+Quantum circuits can be run backwards exactly. If the circuit compresses normal data perfectly, running it in reverse rebuilds the input perfectly. So you never need to build the decoder; checking the trash qubits is enough.
 
 ## The circuit
 
 ```python
-qml.AngleEmbedding(x, wires, rotation="Y")        # 4 features -> 4 qubits
-qml.StronglyEntanglingLayers(weights, wires)       # trainable, n_layers deep
+qml.AngleEmbedding(x, wires, rotation="Y")        # 4 numbers -> 4 qubits
+qml.StronglyEntanglingLayers(weights, wires)       # the trainable part
 return [qml.expval(qml.PauliZ(w)) for w in trash_wires]
 ```
 
-With `n_qubits=4, n_latent=2` there are two trash qubits. `<Z> = 1` means `|0>`, so the probability of `|1>` is `(1 - <Z>) / 2`. The loss is the mean of that over trash qubits and over a batch.
+`StronglyEntanglingLayers` is a standard off the shelf circuit: three rotations per qubit, then link neighbours, repeated `n_layers` times. The `weights` are what training adjusts.
 
-`StronglyEntanglingLayers` is a standard hardware efficient ansatz: three rotations per qubit followed by a ring of CNOTs, repeated `n_layers` times. Weight shape is `(n_layers, n_qubits, 3)`.
+A measurement of +1 on a trash qubit means it read 0; the probability of reading 1 is `(1 - measurement) / 2`. The training loss is the average of that over the trash qubits and over a batch.
 
 ## Training
 
-Plain Adam from PennyLane with autograd, mini batches of normal windows. The detector stores `history`, the mean trash probability per epoch, so you can plot the loss curve. The test suite asserts the loss decreases.
+Plain Adam optimiser, mini batches of normal windows, for `epochs` rounds. The detector keeps `history`, the loss per epoch, so you can plot it. The tests check the loss goes down.
 
-PennyLane broadcasts a batch of inputs through `AngleEmbedding`, so one circuit call evaluates a whole batch. That is what makes training affordable on a simulator.
+PennyLane can push a whole batch of windows through the circuit in one call, which is what makes training reasonable on a laptop.
 
-## Barren plateaus, briefly
+## One thing to know: flat training
 
-Deep random variational circuits have gradients that vanish exponentially in the number of qubits. At 4 qubits and 2 layers this is not a problem, which is one more reason tiny telemetry problems are a good place to study QML. If you scale to 10+ qubits and training stalls at a flat loss, that is the plateau. Mitigations: fewer layers, local cost functions (this one already is local: it measures individual trash qubits), layerwise training, identity initialisation.
+Big random quantum circuits have a known problem where the training signal vanishes and the loss stays flat. At 4 qubits and 2 layers this does not happen, which is one more reason small telemetry problems are a good place to learn. If you go to 10 or more qubits and training stalls, this is why. Fewer layers usually fixes it.
 
-## Reading the result
+## Reading the results
 
-`QuantumAutoencoderDetector` and `PCAReconstructionDetector` share the bottleneck size `n_latent`. Compare their rows:
+Compare `quantum_autoencoder` with `pca_reconstruction`. Both compress to 2 dimensions and score by how badly compression went.
 
-- quantum higher: the unitary, non linear compression captured structure the linear projection missed
-- classical higher: the data is close to linear in the four PCA features and the variational circuit either underfit (too few epochs or layers) or found a poor local minimum
-- check `history`: if the final trash probability is still high (above 0.2), the model has not converged; raise `epochs` or `learning_rate` before concluding anything
+- quantum higher: the circuit found structure the linear PCA missed
+- classical higher: the data is close to linear and the circuit did not fully train, or found a poor solution
+- always check `history`: if the final loss is still above about 0.2 the model has not finished training. Raise `epochs` before drawing conclusions.
 
-## Exercises
+## Things to try
 
-- Plot `detector.history` for three seeds; variational training is seed sensitive and you should see it.
-- Set `n_latent=1` and `n_latent=3`. With one latent qubit the model must throw away a lot; with three it barely compresses. Which gives the best anomaly score, and does the same hold for PCA?
-- Replace `rotation="Y"` with `"X"` in the embedding. Nothing should change in principle; does it in practice?
+- Plot `history` for three seeds. Training is seed sensitive and you should see it.
+- Try `n_latent` of 1 and 3. Does the best setting match what PCA prefers?
+- Swap `rotation="Y"` for `"X"`. In theory nothing changes; does it in practice?

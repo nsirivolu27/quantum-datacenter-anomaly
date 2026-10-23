@@ -1,24 +1,22 @@
 """Quantum kernel one class SVM.
 
-The idea in one paragraph.  A kernel method never looks at raw features;
-it only needs a similarity function k(x, x') between pairs of points.  A
-quantum computer gives us a natural similarity: encode x into a quantum
-state |phi(x)>, encode x' into |phi(x')>, and measure how much they overlap,
+A one class SVM only needs to know how similar any two points are.  Here a
+small quantum circuit answers that question:
 
-    k(x, x') = |<phi(x') | phi(x)>|^2
+    1. load point A onto the qubits
+    2. run the same loading circuit backwards for point B
+    3. measure; the fraction of "all zeros" results is the similarity
 
-That overlap is estimated with the "adjoint trick": run the encoding circuit
-for x, then run the *inverse* of the encoding circuit for x', and read out
-the probability of landing back on the all zero state.  If x == x' the
-circuits cancel exactly and the probability is 1.
+If A and B are identical, step 2 exactly undoes step 1 and you always get
+all zeros (similarity 1).  The more different they are, the lower it gets.
 
-Once we have k we hand the kernel matrix to an ordinary one class SVM.  The
-SVM does the anomaly detection; the quantum computer only computes
-similarities.  This split is why kernel methods are the most practical
-near term QML approach: the optimisation stays classical and convex.
+Everything else is an ordinary scikit-learn one class SVM.  The quantum
+computer only computes similarities.
 
-Cost: fitting on n points needs n(n-1)/2 circuit evaluations, scoring m
-points needs m*n.  That is why the benchmark keeps n_train small.
+Cost: fitting on n points needs about n*n/2 circuit runs, scoring m points
+needs m*n more.  That is why the benchmark keeps n_train small.
+
+See docs/05-quantum-kernels.md for the full walkthrough.
 """
 
 from __future__ import annotations

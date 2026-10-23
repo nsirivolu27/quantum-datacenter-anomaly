@@ -1,61 +1,61 @@
-# 7. Honest benchmarking
+# 7. Comparing fairly
 
-Code: `src/qdc_anomaly/evaluation/benchmark.py`, `src/qdc_anomaly/evaluation/metrics.py`
+Code: `src/qdc_anomaly/evaluation/benchmark.py` and `src/qdc_anomaly/evaluation/metrics.py`
 
-Most QML papers that report an advantage made one of a small number of protocol mistakes. This lesson lists them and shows how the benchmark here avoids each one.
+A lot of quantum machine learning results look better than they are because of small mistakes in how the comparison was run. This lesson shows the mistakes and how the benchmark avoids them.
 
-## The protocol
+## The procedure
 
-1. Generate telemetry once, window it once. The dataset is fixed.
-2. For each seed:
-   - sample `n_train` **normal, unambiguous** windows as the fit set
-   - sample `n_test` windows from the remainder at the natural anomaly rate
-   - fit `QubitReducer` on the fit set only
-   - fit each detector on the reduced fit set, score the reduced test set
-3. Report mean and standard deviation across seeds.
+1. Generate the data once and window it once.
+2. For each random seed:
+   - pick `n_train` normal windows for training
+   - pick `n_test` windows from the rest, with the natural mix of normal and faulty
+   - fit the scaler and PCA on the training windows only
+   - fit every detector on those, score the test windows
+3. Report the average and spread across seeds.
 
-## The mistakes it avoids
+## Mistakes this avoids
 
-**Leaking test data into preprocessing.** The scaler and PCA are fit on the training windows only. Fitting them on everything lets the test anomalies shape the feature space, which flatters every detector but flatters the ones most sensitive to feature geometry (kernels) the most.
+**Letting test data into preprocessing.** The scaler and PCA never see test windows. If they did, the faults would shape the feature space and flatter every detector.
 
-**Different features for different methods.** Every detector receives the identical four dimensional vectors. If the quantum SVM saw raw 21 dimensional features and the classical SVM saw PCA scores, any difference would be uninterpretable.
+**Different inputs for different detectors.** Everyone gets the same 4 numbers. Otherwise you cannot tell whether the detector or the features made the difference.
 
-**Training on contaminated normal data.** Only windows with zero fault coverage enter the fit set. Semi supervised detectors assume this.
+**Training on data that secretly contains faults.** Only windows with zero fault minutes go into training.
 
-**One seed.** Variational circuits are seed sensitive; so is which anomalies land in the test set. Three seeds is the minimum; `--set benchmark.seeds=[0,1,2,3,4]` is better when you have the time.
+**One random seed.** Quantum training and the test split are both seed sensitive. Three seeds is the minimum; use `--set benchmark.seeds=[0,1,2,3,4]` when you have time.
 
-**Accuracy on an imbalanced problem.** With 8 percent anomalies a detector that flags nothing is 92 percent accurate. Accuracy is not reported anywhere.
+**Reporting accuracy.** With 8 percent faults, a detector that flags nothing is 92 percent accurate. Accuracy is never shown.
 
-**Threshold chosen after seeing the test labels.** The F1, precision and recall columns use a fixed **alert budget**: flag exactly the top 10 percent of scores. That is how an operations team actually works ("we can look at ten alerts a day") and it cannot be tuned to the test set.
+**Picking the threshold after looking at the answers.** Precision, recall and F1 use a fixed **alert budget**: the top 10 percent of scores are flagged, period. That matches how teams work ("we can look at ten alerts a day") and cannot be tuned to the test set.
 
-## The metrics
+## The columns
 
-| Column | Question it answers |
+| Column | Plain meaning |
 |---|---|
-| ROC AUC | Across all thresholds, how well does the score rank anomalies above normal? 0.5 is chance. |
-| PR AUC | Same, but focused on the rare positive class; more sensitive to the top of the ranking. |
-| Precision at 10 percent | Of the alerts we would actually page on, how many are real? |
-| Recall at 10 percent | Of the real faults, how many made it into those alerts? |
-| F1 at 10 percent | Harmonic mean of the two. |
-| Fit (s), Score (s) | Wall clock. The quantum rows will be orders of magnitude slower on a simulator; that is a real cost. |
+| ROC AUC | How well scores rank faults above normal, across all thresholds. 0.5 is chance, 1.0 is perfect. |
+| PR AUC | Same idea, but focused on the rare fault class. More sensitive to the top of the list. |
+| Precision at 10 percent | Of the alerts we would send, how many are real faults? |
+| Recall at 10 percent | Of the real faults, how many did we catch? |
+| F1 at 10 percent | A single number combining the two. |
+| Fit (s), Score (s) | Wall clock time. Quantum rows will be much slower on a simulator. That is a real cost. |
 
-The second table, recall per fault type at the alert budget, is the one to read most carefully. An average hides a detector that catches every power spike and no memory leaks.
+The second table, recall per fault type, is the one to read most carefully. An average can hide a detector that catches every power spike and no memory leaks.
 
-## How to read the report
+## How to read a report
 
-Open `results/report.md` after `make benchmark`. Then:
+Open `results/report.md` after `make benchmark`, then:
 
-1. Compare each quantum row to its classical twin (kernel SVM vs RBF SVM, autoencoder vs PCA). Those are the apples to apples comparisons.
-2. Look at the standard deviations. A 0.03 difference with a 0.07 standard deviation is noise.
-3. Look at the per fault table for any fault where one method is clearly better. That is where a feature map story, if any, lives.
-4. Look at the timing columns and ask whether a difference you found is worth the cost.
+1. Compare each quantum row with its classical twin (kernel SVM vs one class SVM, autoencoder vs PCA).
+2. Check the spread. A 0.03 gap with a 0.07 spread is noise.
+3. Look at the per fault table for any fault where one model clearly wins.
+4. Look at the time columns and ask whether a gain is worth the cost.
 
-## What the default run shows
+## Recording results
 
-Numbers from the classical rows are in lesson 4. For the quantum rows, run the benchmark and record what you see in `docs/results.md` (a template is provided). The repository deliberately does not ship quantum numbers in the lesson text: they depend on simulator version, seed, and epoch count, and the exercise of producing and interpreting them is the lesson.
+Use `docs/results.md`. The classical rows are already there. The quantum rows depend on library version, seed and epoch count, so run them yourself and write down what you see. Producing and interpreting those numbers is the point of the lesson.
 
-## Exercises
+## Things to try
 
-- Set `benchmark.n_train=60` and rerun. Kernel methods degrade gracefully with less data; does the autoencoder?
-- Include ambiguous windows as anomalous (one line change in `split_windows`) and record how far every ROC AUC falls. Now you know how much a labeling convention is worth.
-- Add a fourth classical baseline (local outlier factor is a two line addition) and see whether it changes any conclusion.
+- Set `benchmark.n_train=60`. Kernel methods usually cope with less data; does the autoencoder?
+- Count ambiguous windows as faults (one line in `split_windows`) and see how far every score drops.
+- Add local outlier factor as a fourth classical baseline (two lines) and see if any conclusion changes.

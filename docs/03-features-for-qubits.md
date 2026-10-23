@@ -1,49 +1,49 @@
-# 3. Features for qubits
+# 3. Getting the data ready for qubits
 
-Code: `src/qdc_anomaly/features/windows.py`, `src/qdc_anomaly/features/reduce.py`
+Code: `src/qdc_anomaly/features/windows.py` and `src/qdc_anomaly/features/reduce.py`
 
-## From time series to vectors
+## Step 1: windows
 
-All detectors here are point based: they score one vector at a time. Faults are temporal. Sliding windows bridge the gap.
+The detectors score one row at a time, but faults play out over minutes. So we slide a 10 minute window over each rack's data and summarise each window with three numbers per metric:
 
-For each rack and each window of `window_size` steps, we compute per metric:
+- **mean**: the typical level in the window
+- **std**: how much it bounced around
+- **slope**: last value minus first value, the trend
 
-- **mean** (the level)
-- **std** (the volatility)
-- **slope** (last minus first, the trend)
+Seven metrics times three summaries gives 21 numbers per window. The slope is what catches ramps: early in a thermal runaway the average temperature looks normal but the slope does not.
 
-Seven metrics times three summaries gives a 21 dimensional vector. The slope is what catches ramps: a thermal runaway in its first ten steps has a nearly normal mean but a clearly abnormal slope.
+## Labeling windows
 
-## Window labels and the ambiguity rule
+A window is:
 
-A window is **anomalous** if at least half its steps fall inside a fault, **normal** if none do, and **ambiguous** otherwise.
+- **anomalous** if at least half of its minutes are inside a fault
+- **normal** if none are
+- **ambiguous** if it only clips the start or end of a fault
 
-Ambiguous windows are excluded from the benchmark. The reasoning: a window that catches the first two steps of a ramp carries almost no signal. Counting it as anomalous punishes every detector for something nobody could detect; counting it as normal teaches the detector that the beginning of a fault is fine. Neither is honest. Excluding them and saying so is.
+Ambiguous windows are left out of the benchmark. A window that caught the first two minutes of a slow ramp carries almost no signal. Counting it as anomalous would penalise every detector for something nobody could catch; counting it as normal would teach the model that the start of a fault is fine. Leaving them out and saying so is the honest choice.
 
-The effect is large. With the default config, including ambiguous windows as anomalous drops every detector's ROC AUC by roughly 0.1. When you read a paper's benchmark, this is the kind of choice to look for.
+## Step 2: shrink to 4 numbers
 
-## Down to one number per qubit
+The quantum models encode one number per qubit, and we use 4 qubits. So the 21 numbers per window are reduced to 4:
 
-The quantum detectors encode one feature per qubit as a rotation angle. Four qubits means four features. `QubitReducer` does:
+1. scale every column to mean 0 and spread 1 (using only the normal training data)
+2. PCA to 4 components, keeping the directions with the most variation
+3. squash each component into the range 0 to pi
 
-1. `StandardScaler` fit on the normal training windows
-2. `PCA` to `n_components`
-3. squash each component into `[0, pi]` using the training range plus a margin, clipping at inference time
+The classical detectors get the exact same 4 numbers. That is the fairness rule for the whole repo.
 
-The classical detectors receive the identical reduced vectors. That is the fairness rule of the whole repository: every method sees the same four numbers.
+## Why 0 to pi matters
 
-## The periodicity trap
+The 4 numbers become rotation angles on the qubits. Rotations wrap around: rotating by 0 and rotating by 2 pi give the same result. If you feed raw numbers in, two very different windows can land on the same quantum state and look identical to the model.
 
-Step 3 is the one people skip and regret. Rotation gates are periodic: `RY(theta)` and `RY(theta + 2 pi)` are the same gate. If you feed raw PCA scores as angles, two very different windows can land on the same quantum state and the kernel will call them identical.
+Squashing into 0 to pi avoids the wrap. Values outside the training range are clipped to the edge, which is fine: a window far outside normal is suspicious anyway, and the edge is the "most different" position.
 
-Mapping to `[0, pi]` avoids the wraparound. Clipping out of range values at inference does something useful too: a window far outside the training range is itself suspicious, and clipping to the edge of the range preserves that as "as different as possible" rather than wrapping it back toward the middle.
+## How much information is lost
 
-## How much is lost
+With the default settings, 4 components keep about 65 to 70 percent of the variation in the 21 numbers. The benchmark prints this. Every detector pays the same cost. If you have more qubits to spend, raise `n_components` and `n_qubits` together in the config; it will refuse to run if they differ.
 
-With the default config PCA to 4 components keeps roughly 65 to 70 percent of the variance of the 21 features. The benchmark prints this per seed. The remaining 30 percent is partly noise and partly real signal, and it is a cost all detectors pay equally. If you have more qubits (or a faster simulator) raise `n_components` and `n_qubits` together; the config validator insists they match.
+## Things to try
 
-## Exercises
-
-- Change `window_size` to 5 and 20 and watch which fault types gain or lose recall.
-- Replace the mean/std/slope summaries with the raw last step only and see how much the slope was worth.
-- Try `angle_max = 2 * pi` in `QubitReducer` and observe the kernel matrix; look for off diagonal entries near 1 between dissimilar windows.
+- Change `window_size` to 5 and 20 and see which faults get easier or harder.
+- Drop the slope and see how much it was worth.
+- Set `angle_max` to 2 pi in `QubitReducer` and look at the kernel matrix for windows that wrongly look identical.
