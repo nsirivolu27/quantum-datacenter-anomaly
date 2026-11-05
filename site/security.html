@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Book two: the moves an intruder makes inside a data center, the sensor that notices each one, and the layer that stops it.">
+<title>Sentinel Lab Security</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a picture book. Each page is one large illustrated scene with a one-line caption.
+   Dark first, like a data hall at night; the four stream colors never change meaning. */
+:root {
+  --bg: #0c1118; --bg-2: #111823; --panel: #161f2b; --panel-2: #1c2735; --ink: #eef3f9; --ink-2: #b9c4d2; --ink-3: #7f8ca0;
+  --rule: #273343; --rule-2: #3a4859;
+  --gpu: #f4a83a; --net: #6f97ff; --decoy: #e46ff2; --files: #43d3a0; --bad: #ff7a7a; --warn: #f4a83a; --good: #43d3a0; --grey: #8b95a5;
+  --display: "Outfit", "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+  --body: "Atkinson Hyperlegible", Verdana, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --maxw: 1120px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f6fa; --bg-2: #eaeef4; --panel: #ffffff; --panel-2: #f1f4f8; --ink: #121821; --ink-2: #3b4656; --ink-3: #6d7a8d;
+    --rule: #d7dde7; --rule-2: #bcc6d3;
+    --gpu: #d47a0a; --net: #2a5bd7; --decoy: #b426c5; --files: #0f8f66; --bad: #c62828; --warn: #d47a0a; --good: #0f8f66; --grey: #8b95a5;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f4f6fa; --bg-2: #eaeef4; --panel: #ffffff; --panel-2: #f1f4f8; --ink: #121821; --ink-2: #3b4656; --ink-3: #6d7a8d;
+  --rule: #d7dde7; --rule-2: #bcc6d3;
+  --gpu: #d47a0a; --net: #2a5bd7; --decoy: #b426c5; --files: #0f8f66; --bad: #c62828; --warn: #d47a0a; --good: #0f8f66; --grey: #8b95a5;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+a { color: var(--net); }
+:focus-visible { outline: 3px solid var(--gpu); outline-offset: 2px; }
+.wrap { max-width: var(--maxw); margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* book pages */
+.page { padding-block: 56px; border-top: 1px solid var(--rule); }
+.page:first-of-type { border-top: 0; }
+.page.alt { background: var(--bg-2); }
+.cap { display: grid; grid-template-columns: 56px 1fr; gap: 18px; align-items: start; margin-bottom: 22px; }
+.cap .no { font-family: var(--display); font-weight: 700; font-size: 40px; line-height: 1; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.cap h2 { font-family: var(--display); font-weight: 600; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; margin: 0; text-wrap: balance; }
+.cap p { margin: 6px 0 0; color: var(--ink-2); max-width: 60ch; font-size: 17px; }
+.scene { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 14px; overflow-x: auto; }
+.scene svg { display: block; width: 100%; height: auto; min-width: 720px; }
+.scene text, .hall text { font-family: var(--body); fill: var(--ink); font-size: 14px; }
+.scene .t, .hall .t { font-family: var(--display); font-weight: 600; font-size: 17px; }
+.scene .s, .hall .s { fill: var(--ink-3); font-size: 12.5px; }
+.scene .m, .hall .m { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+.scene .box, .hall .box { fill: var(--panel-2); stroke: var(--rule-2); }
+.scene .rail, .hall .rail { fill: none; stroke: var(--rule-2); stroke-width: 2; }
+.scene .flow, .hall .flow { fill: none; stroke-width: 3; stroke-linecap: round; }
+.f-gpu { stroke: var(--gpu); } .f-net { stroke: var(--net); } .f-decoy { stroke: var(--decoy); } .f-files { stroke: var(--files); } .f-grey { stroke: var(--grey); }
+.d-gpu { fill: var(--gpu); } .d-net { fill: var(--net); } .d-decoy { fill: var(--decoy); } .d-files { fill: var(--files); } .d-grey { fill: var(--grey); } .d-bad { fill: var(--bad); } .d-good { fill: var(--good); }
+.foot { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; color: var(--ink-3); padding: 12px 4px 2px; }
+.foot span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: -1px; background: var(--grey); }
+.foot .gpu::before { background: var(--gpu); } .foot .net::before { background: var(--net); } .foot .decoy::before { background: var(--decoy); } .foot .files::before { background: var(--files); } .foot .bad::before { background: var(--bad); }
+
+/* cover */
+.cover { padding-block: 48px 40px; }
+.cover h1 { font-family: var(--display); font-weight: 700; font-size: clamp(40px, 7vw, 86px); line-height: 0.98; margin: 0 0 14px; letter-spacing: -0.01em; max-width: 12ch; }
+.cover p { color: var(--ink-2); font-size: 19px; max-width: 52ch; margin: 0 0 28px; }
+.hall { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; overflow: hidden; }
+.hall svg { display: block; width: 100%; height: auto; }
+.led { animation: blink 2.4s infinite; }
+.led:nth-child(3n) { animation-delay: .8s; } .led:nth-child(3n+1) { animation-delay: 1.6s; }
+@keyframes blink { 0%, 60% { opacity: 1 } 70% { opacity: .25 } 80%, 100% { opacity: 1 } }
+
+/* animations */
+.breath { animation: breath 4s ease-in-out infinite; transform-origin: left center; }
+@keyframes breath { 0%, 100% { transform: scaleX(.45) } 50% { transform: scaleX(.92) } }
+.needle { animation: needle 4s ease-in-out infinite; transform-origin: 0 0; }
+@keyframes needle { 0%, 100% { transform: rotate(-20deg) } 50% { transform: rotate(38deg) } }
+.pulse { animation: pulse 1.6s ease-out infinite; transform-origin: center; }
+@keyframes pulse { 0% { opacity: .9; transform: scale(.6) } 100% { opacity: 0; transform: scale(1.8) } }
+.tick { animation: tick 1s steps(1) infinite; }
+@keyframes tick { 0% { opacity: 1 } 50% { opacity: .35 } }
+.sweep { animation: sweep 12s linear infinite; }
+@keyframes sweep { from { transform: translateX(0) } to { transform: translateX(700px) } }
+.pop { opacity: 0; animation-duration: 12s; animation-timing-function: linear; animation-iteration-count: infinite; }
+.pop.at12 { animation-name: pop12; }
+@keyframes pop12 { 0%, 12% { opacity: 0 } 13%, 100% { opacity: 1 } }
+.pop.at20 { animation-name: pop20; }
+@keyframes pop20 { 0%, 20% { opacity: 0 } 21%, 100% { opacity: 1 } }
+.pop.at34 { animation-name: pop34; }
+@keyframes pop34 { 0%, 34% { opacity: 0 } 35%, 100% { opacity: 1 } }
+.pop.at36 { animation-name: pop36; }
+@keyframes pop36 { 0%, 36% { opacity: 0 } 37%, 100% { opacity: 1 } }
+.pop.at62 { animation-name: pop62; }
+@keyframes pop62 { 0%, 62% { opacity: 0 } 63%, 100% { opacity: 1 } }
+.pop.at78 { animation-name: pop78; }
+@keyframes pop78 { 0%, 78% { opacity: 0 } 79%, 100% { opacity: 1 } }
+.pop.at82 { animation-name: pop82; }
+@keyframes pop82 { 0%, 82% { opacity: 0 } 83%, 100% { opacity: 1 } }
+.pop.at84 { animation-name: pop84; }
+@keyframes pop84 { 0%, 84% { opacity: 0 } 85%, 100% { opacity: 1 } }
+.pop.at86 { animation-name: pop86; }
+@keyframes pop86 { 0%, 86% { opacity: 0 } 87%, 100% { opacity: 1 } }
+.fall { animation: fall 2.6s ease-in infinite; }
+@keyframes fall { 0% { transform: translateY(0); opacity: 1 } 80% { opacity: 1 } 100% { transform: translateY(70px); opacity: 0 } }
+.glow { animation: glow 2.6s infinite; }
+@keyframes glow { 0%, 55% { opacity: .35 } 62%, 85% { opacity: 1 } 100% { opacity: .35 } }
+.shake { animation: shake 3s infinite; transform-origin: center; }
+@keyframes shake { 0%, 70%, 100% { transform: translateX(0) } 74% { transform: translateX(-3px) } 78% { transform: translateX(3px) } 82% { transform: translateX(-2px) } 86% { transform: translateX(0) } }
+.spin { animation: spin 6s linear infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes spin { to { transform: rotate(360deg) } }
+@media (prefers-reduced-motion: reduce) { .mover, .pulse { display: none } .breath, .needle, .tick, .sweep, .pop, .fall, .glow, .shake, .spin, .led { animation: none !important; opacity: 1 } }
+
+/* counters (lambda console feel) */
+.counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+.ctr { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.ctr b { font-family: var(--display); font-weight: 600; font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
+.ctr span { font-size: 13px; color: var(--ink-3); }
+@media (max-width: 700px) { .counters { grid-template-columns: repeat(2, 1fr); } }
+
+/* three bins */
+.bins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.bin { background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 16px; display: grid; gap: 8px; }
+.bin svg { width: 100%; height: auto; display: block; }
+.bin h3 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0; }
+.bin p { margin: 0; color: var(--ink-2); font-size: 15px; }
+@media (max-width: 760px) { .bins { grid-template-columns: 1fr; } }
+
+/* back cover */
+.back { padding-block: 48px 64px; color: var(--ink-2); }
+.back .wrap { display: grid; gap: 16px; }
+.back h2 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0; }
+.back ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 16px; }
+.back small { color: var(--ink-3); font-size: 13px; }
+</style>
+</head>
+<body><header class="wrap cover">
+  <p style="margin:0 0 10px; color: var(--ink-3); font-size: 15px"><a href="index.html" style="color: var(--ink-3)">Book one: inside a data center</a> · Book two</p>
+  <h1>What an intruder tries, and what the data center sees</h1>
+  <p>The same lab, read as a security story. Each page is one move an attacker makes, the sensor that notices, and the layer that stops it. Every move here is a scripted, harmless imitation inside an isolated network; the sensors and the refusals are real.</p>
+  <div class="hall" aria-label="The lab network: an isolated network with the worker, an approved service, a test receiver and a decoy; a separate management network with the viewer bound to localhost">
+    <svg viewBox="0 0 1120 360" role="img">
+      <rect width="1120" height="360" fill="var(--panel)"/>
+      <!-- isolated network -->
+      <rect x="40" y="40" width="700" height="280" rx="18" fill="var(--bg-2)" stroke="var(--rule-2)" stroke-width="2" stroke-dasharray="8 6"/>
+      <text class="t" x="60" y="70">Isolated network</text><text class="s" x="60" y="90">no route to the internet or the host</text>
+      <g transform="translate(80 130)"><rect width="150" height="110" rx="12" fill="var(--panel-2)" stroke="var(--gpu)" stroke-width="2"/><text class="t" x="16" y="30">Worker</text><text class="s" x="16" y="52">the machine under watch</text><text class="s" x="16" y="72">Zeek rides inside it</text><circle class="pulse" cx="75" cy="55" r="50" fill="none" stroke="var(--gpu)" stroke-width="2"/></g>
+      <g transform="translate(320 110)"><rect width="170" height="50" rx="10" class="box"/><text class="t" x="14" y="22">Approved service</text><text class="s" x="14" y="40">on the allow list</text></g>
+      <g transform="translate(320 185)"><rect width="170" height="50" rx="10" class="box"/><text class="t" x="14" y="22">Test receiver</text><text class="s" x="14" y="40">not on the allow list</text></g>
+      <g transform="translate(320 260)"><rect width="170" height="50" rx="10" fill="var(--panel-2)" stroke="var(--decoy)" stroke-dasharray="5 4"/><text class="t" x="14" y="22">Decoy</text><text class="s" x="14" y="40">OpenCanary, a fake door</text></g>
+      <path class="flow f-net" d="M230 170 C 280 170, 280 135, 320 135"/>
+      <path class="flow f-net" d="M230 185 C 280 185, 280 210, 320 210" stroke-dasharray="6 6"/>
+      <path class="flow f-decoy" d="M230 200 C 280 200, 280 285, 320 285" stroke-dasharray="4 6"/>
+      <g transform="translate(540 130)"><rect width="170" height="110" rx="12" fill="var(--panel-2)" stroke="var(--files)"/><text class="t" x="14" y="28">Evidence folder</text><text class="s" x="14" y="50">shared files only;</text><text class="s" x="14" y="68">the only thing that</text><text class="s" x="14" y="86">crosses the fence</text></g>
+      <path class="rail" d="M490 135 L 540 160" stroke-dasharray="3 4"/><path class="rail" d="M490 285 L 540 220" stroke-dasharray="3 4"/>
+      <!-- management network -->
+      <rect x="780" y="40" width="300" height="280" rx="18" fill="var(--bg-2)" stroke="var(--rule-2)" stroke-width="2"/>
+      <text class="t" x="800" y="70">Management network</text><text class="s" x="800" y="90">separate bridge, reads files only</text>
+      <g transform="translate(800 130)"><rect width="260" height="110" rx="12" class="box"/><text class="t" x="16" y="30">Collector and viewer</text><text class="s" x="16" y="52">published on 127.0.0.1:8765 only</text><text class="s" x="16" y="72">no Docker socket, no shell,</text><text class="s" x="16" y="90">no way to pick a target</text></g>
+      <path class="rail" d="M710 185 L 800 185" stroke-dasharray="3 4"/>
+      <text class="s" x="800" y="300">The viewer can watch. It cannot reach in.</text>
+    </svg>
+  </div>
+  <div class="foot"><span class="net">allowed traffic</span><span class="decoy">traffic that should never happen</span><span class="files">files crossing the fence</span></div>
+</header>
+
+<!-- 1: reconnaissance -->
+<section class="page">
+  <div class="wrap">
+    <div class="cap"><span class="no">1</span><div><h2>Move one: look for open doors</h2><p>An intruder on a machine tries ports on its neighbors to learn what is there. Seven knocks on a decoy, then a fake login on the one door that answers.</p></div></div>
+    <div class="scene" aria-label="The worker knocks on seven ports of the decoy; six are closed, the HTTP port answers and records a login attempt; Zeek sees all seven attempts">
+      <svg viewBox="0 0 1100 340" role="img">
+        <g transform="translate(40 110)"><rect width="150" height="110" rx="12" fill="var(--panel-2)" stroke="var(--gpu)" stroke-width="2"/><text class="t" x="16" y="30">Worker</text><text class="s" x="16" y="52">recon script</text><text class="m" x="16" y="80">21 22 23 80</text><text class="m" x="16" y="98">443 445 3389</text></g>
+        <defs>
+          <path id="k1" d="M190 130 L 470 60"/><path id="k2" d="M190 140 L 470 95"/><path id="k3" d="M190 150 L 470 130"/><path id="k4" d="M190 160 L 470 165"/><path id="k5" d="M190 170 L 470 200"/><path id="k6" d="M190 180 L 470 235"/><path id="k7" d="M190 190 L 470 270"/>
+        </defs>
+        <use href="#k1" class="rail"/><use href="#k2" class="rail"/><use href="#k3" class="rail"/><use href="#k4" class="rail"/><use href="#k5" class="rail"/><use href="#k6" class="rail"/><use href="#k7" class="rail"/>
+        <g class="mover">
+          <circle r="5" class="d-decoy"><animateMotion dur="3.5s" repeatCount="indefinite"><mpath href="#k1"/></animateMotion></circle>
+          <circle r="5" class="d-decoy"><animateMotion dur="3.5s" begin=".5s" repeatCount="indefinite"><mpath href="#k2"/></animateMotion></circle>
+          <circle r="5" class="d-decoy"><animateMotion dur="3.5s" begin="1s" repeatCount="indefinite"><mpath href="#k3"/></animateMotion></circle>
+          <circle r="5" class="d-decoy"><animateMotion dur="3.5s" begin="1.5s" repeatCount="indefinite"><mpath href="#k4"/></animateMotion></circle>
+          <circle r="5" class="d-decoy"><animateMotion dur="3.5s" begin="2s" repeatCount="indefinite"><mpath href="#k5"/></animateMotion></circle>
+          <circle r="5" class="d-decoy"><animateMotion dur="3.5s" begin="2.5s" repeatCount="indefinite"><mpath href="#k6"/></animateMotion></circle>
+          <circle r="5" class="d-decoy"><animateMotion dur="3.5s" begin="3s" repeatCount="indefinite"><mpath href="#k7"/></animateMotion></circle>
+        </g>
+        <!-- doors -->
+        <g transform="translate(470 40)">
+          <rect width="150" height="250" rx="14" fill="var(--panel-2)" stroke="var(--decoy)" stroke-dasharray="6 4" stroke-width="2"/>
+          <text class="t" x="14" y="-12" style="fill: var(--decoy)">Decoy</text>
+          <g><rect x="16" y="12" width="118" height="22" rx="5" fill="var(--panel)" stroke="var(--rule-2)"/><text class="m" x="24" y="27">21  closed</text></g>
+          <g><rect x="16" y="47" width="118" height="22" rx="5" fill="var(--panel)" stroke="var(--rule-2)"/><text class="m" x="24" y="62">22  closed</text></g>
+          <g><rect x="16" y="82" width="118" height="22" rx="5" fill="var(--panel)" stroke="var(--rule-2)"/><text class="m" x="24" y="97">23  closed</text></g>
+          <g class="glow"><rect x="16" y="117" width="118" height="22" rx="5" fill="var(--panel)" stroke="var(--decoy)" stroke-width="2"/><text class="m" x="24" y="132" style="fill: var(--decoy)">8080  open, fake</text></g>
+          <g><rect x="16" y="152" width="118" height="22" rx="5" fill="var(--panel)" stroke="var(--rule-2)"/><text class="m" x="24" y="167">443  closed</text></g>
+          <g><rect x="16" y="187" width="118" height="22" rx="5" fill="var(--panel)" stroke="var(--rule-2)"/><text class="m" x="24" y="202">445  closed</text></g>
+          <g><rect x="16" y="222" width="118" height="22" rx="5" fill="var(--panel)" stroke="var(--rule-2)"/><text class="m" x="24" y="237">3389  closed</text></g>
+        </g>
+        <!-- witnesses -->
+        <g transform="translate(700 60)"><rect width="360" height="90" rx="12" class="box" style="stroke: var(--net)"/><text class="t" x="16" y="28">Zeek saw every knock</text><text class="s" x="16" y="50">7 different ports on one machine within 20 seconds,</text><text class="s" x="16" y="68">most of them refused. Attempts count, success does not matter.</text><text class="m" x="16" y="84" style="fill: var(--net)">port-spread</text></g>
+        <g transform="translate(700 170)"><rect width="360" height="90" rx="12" class="box" style="stroke: var(--decoy)"/><text class="t" x="16" y="28">The decoy recorded the login</text><text class="s" x="16" y="50">username lab-user, password demo-only, on a page that</text><text class="s" x="16" y="68">exists for no real reason. One event is enough.</text><text class="m" x="16" y="84" style="fill: var(--decoy)">honeypot-contact</text></g>
+        <text class="s" x="700" y="300">Two independent witnesses. Neither proves anything was taken; both say someone was looking.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 2: beacon -->
+<section class="page alt">
+  <div class="wrap">
+    <div class="cap"><span class="no">2</span><div><h2>Move two: check in on a schedule</h2><p>Malware phones home at regular intervals. So does a harmless status script. The lab flags the rhythm and labels it look closer, not caught.</p></div></div>
+    <div class="scene" aria-label="Heartbeats from the worker to the test receiver every three seconds, drawn as evenly spaced ticks; the rule measures how even the spacing is">
+      <svg viewBox="0 0 1100 320" role="img">
+        <g transform="translate(40 60)"><rect width="150" height="90" rx="12" fill="var(--panel-2)" stroke="var(--gpu)" stroke-width="2"/><text class="t" x="16" y="30">Worker</text><text class="s" x="16" y="52">sends lab-heartbeat</text><text class="s" x="16" y="70">every 3 seconds</text></g>
+        <g transform="translate(840 60)"><rect width="220" height="90" rx="12" class="box"/><text class="t" x="16" y="30">Test receiver</text><text class="s" x="16" y="52">an internal machine that is</text><text class="s" x="16" y="70">not on the allow list</text></g>
+        <path class="rail" d="M190 105 L 840 105"/>
+        <g class="mover"><circle r="5" class="d-net"><animateMotion dur="3s" repeatCount="indefinite" path="M190 105 L 840 105"/></animateMotion></circle></g>
+        <!-- tick strip -->
+        <g transform="translate(190 190)">
+          <line x1="0" y1="0" x2="650" y2="0" stroke="var(--rule-2)" stroke-width="2"/>
+          <g fill="var(--net)">
+            <rect x="0" y="-18" width="4" height="36" rx="2"/><rect x="108" y="-18" width="4" height="36" rx="2"/><rect x="216" y="-18" width="4" height="36" rx="2"/><rect x="324" y="-18" width="4" height="36" rx="2"/><rect x="432" y="-18" width="4" height="36" rx="2"/><rect x="540" y="-18" width="4" height="36" rx="2"/>
+          </g>
+          <text class="m" x="54" y="40" text-anchor="middle">3.0 s</text><text class="m" x="162" y="40" text-anchor="middle">3.1 s</text><text class="m" x="270" y="40" text-anchor="middle">2.9 s</text><text class="m" x="378" y="40" text-anchor="middle">3.0 s</text><text class="m" x="486" y="40" text-anchor="middle">3.0 s</text>
+          <text class="s" x="0" y="70">six connections, spacing varies by about 2%. The rule allows up to 25%.</text>
+        </g>
+        <g transform="translate(40 280)"><text class="m" style="fill: var(--decoy)">periodic-connection</text><text class="s" x="180" y="0">A candidate, not confirmed command and control. Regular traffic can be benign, so a person checks what the receiver is.</text></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 3: misuse -->
+<section class="page">
+  <div class="wrap">
+    <div class="cap"><span class="no">3</span><div><h2>Move three: borrow the GPU and move data out</h2><p>Heavy compute with no approved job, while large uploads go to the unapproved machine. Two sensors see two halves. The lab joins them only because the same node and the same five seconds are involved.</p></div></div>
+    <div class="scene" aria-label="GPU utilization high with no approved job on the left; large uploads to the receiver on the right; a join in the middle requires same node and five seconds">
+      <svg viewBox="0 0 1100 340" role="img">
+        <g transform="translate(40 40)">
+          <rect width="300" height="120" rx="12" class="box" style="stroke: var(--gpu)"/><text class="t" x="16" y="28">Thermometer log</text>
+          <rect x="16" y="44" width="268" height="12" rx="6" fill="var(--rule)"/><rect x="16" y="44" width="236" height="12" rx="6" fill="var(--gpu)"/>
+          <text class="m" x="16" y="78">utilization 88%   job_approved: false</text><text class="m" x="16" y="100" style="fill: var(--gpu)">unapproved-compute</text>
+        </g>
+        <g transform="translate(760 40)">
+          <rect width="300" height="120" rx="12" class="box" style="stroke: var(--net)"/><text class="t" x="16" y="28">Traffic camera</text>
+          <text class="m" x="16" y="56">66,024 bytes  to receiver</text><text class="m" x="16" y="74">66,024 bytes  to receiver</text><text class="m" x="16" y="92">66,024 bytes  to receiver   …</text><text class="m" x="16" y="110" style="fill: var(--net)">outbound-volume (≥150 kB in 60 s)</text>
+        </g>
+        <!-- join -->
+        <path class="rail" d="M340 100 L 400 100"/><path class="rail" d="M760 100 L 700 100"/>
+        <g transform="translate(400 50)">
+          <rect width="300" height="100" rx="12" fill="var(--panel-2)" stroke="var(--ink-3)" stroke-width="2"/>
+          <text class="t" x="16" y="28">Join only if</text>
+          <text class="s" x="16" y="52">same node: compute-01 ↔ worker IP</text><text class="s" x="16" y="70">same moment: within 5 seconds</text><text class="s" x="16" y="88">big enough: ≥ 50 kB in one connection</text>
+        </g>
+        <path class="rail" d="M550 150 L 550 200"/>
+        <g transform="translate(330 200)">
+          <rect width="440" height="104" rx="12" fill="var(--panel-2)" stroke="var(--decoy)" stroke-width="2"/>
+          <text class="t" x="16" y="28">Unapproved compute overlaps an unusual transfer</text>
+          <text class="s" x="16" y="50">Two independent sources agree in time and identity.</text>
+          <text class="s" x="16" y="68">It does not prove the GPU job sent the bytes, or what the bytes were.</text>
+          <text class="m" x="16" y="92" style="fill: var(--decoy)">compute-network-overlap</text>
+        </g>
+        <text class="s" x="40" y="320">If the intruder had first read a dataset through the cabinet, a second join would note the read followed by the upload within 30 seconds.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 4: files -->
+<section class="page alt">
+  <div class="wrap">
+    <div class="cap"><span class="no">4</span><div><h2>Move four: swap the model for a poisoned one</h2><p>Three layers stand between an intruder on the worker and a changed model file. Each one fails loudly on its own.</p></div></div>
+    <div class="scene" aria-label="Three layers: the guest list says no, the read-only shelf says EROFS, and the fingerprint check catches any change that got through another way">
+      <svg viewBox="0 0 1100 360" role="img">
+        <g transform="translate(40 120)"><rect width="150" height="100" rx="12" fill="var(--panel-2)" stroke="var(--gpu)" stroke-width="2"/><text class="t" x="16" y="30">Worker</text><text class="s" x="16" y="52">"replace the model"</text><text class="m" x="16" y="78">as training-job</text></g>
+        <path class="rail" d="M190 170 L 250 170"/>
+        <!-- layer 1 -->
+        <g transform="translate(250 60)">
+          <rect width="230" height="220" rx="14" class="box" style="stroke: var(--files)"/>
+          <text class="t" x="16" y="30">Layer 1: guest list</text>
+          <text class="s" x="16" y="56">training-job may read the</text><text class="s" x="16" y="74">model. It may not write it.</text>
+          <g class="shake"><rect x="16" y="94" width="198" height="34" rx="8" fill="var(--panel)" stroke="var(--bad)"/><text class="m" x="28" y="116" style="fill: var(--bad)">deny: no write grant</text></g>
+          <text class="s" x="16" y="152">written to the audit log</text>
+          <text class="m" x="16" y="176" style="fill: var(--files)">access-policy-violation</text>
+          <text class="s" x="16" y="206" style="fill: var(--ink-3)">only guards calls made</text><text class="s" x="16" y="222" style="fill: var(--ink-3)">through the store</text>
+        </g>
+        <path class="rail" d="M480 170 L 540 170" stroke-dasharray="4 4"/><text class="s" x="486" y="160" style="fill: var(--ink-3)">bypass?</text>
+        <!-- layer 2 -->
+        <g transform="translate(540 60)">
+          <rect width="230" height="220" rx="14" class="box" style="stroke: var(--files)"/>
+          <text class="t" x="16" y="30">Layer 2: glued shelf</text>
+          <text class="s" x="16" y="56">The worker's folder is mounted</text><text class="s" x="16" y="74">read-only by the kernel.</text>
+          <g class="shake" style="animation-delay:1s"><rect x="16" y="94" width="198" height="34" rx="8" fill="var(--panel)" stroke="var(--bad)"/><text class="m" x="28" y="116" style="fill: var(--bad)">open(): EROFS</text></g>
+          <text class="s" x="16" y="152">the worker records its own refusal</text>
+          <text class="m" x="16" y="176" style="fill: var(--files)">boundary.jsonl</text>
+          <text class="s" x="16" y="206" style="fill: var(--ink-3)">holds inside Docker, not on</text><text class="s" x="16" y="222" style="fill: var(--ink-3)">the host where you log in</text>
+        </g>
+        <path class="rail" d="M770 170 L 830 170" stroke-dasharray="4 4"/><text class="s" x="776" y="160" style="fill: var(--ink-3)">bypass?</text>
+        <!-- layer 3 -->
+        <g transform="translate(830 60)">
+          <rect width="230" height="220" rx="14" class="box" style="stroke: var(--files)"/>
+          <text class="t" x="16" y="30">Layer 3: fingerprints</text>
+          <text class="s" x="16" y="56">Before use, the bytes are hashed</text><text class="s" x="16" y="74">and compared to the approved list.</text>
+          <g><rect x="16" y="94" width="198" height="34" rx="8" fill="var(--panel)" stroke="var(--bad)"/><text class="m" x="28" y="116" style="fill: var(--bad)">b1c90… ≠ 4e77a…</text></g>
+          <text class="s" x="16" y="152">the model is refused, not loaded</text>
+          <text class="m" x="16" y="176" style="fill: var(--files)">integrity-failure</text>
+          <text class="s" x="16" y="206" style="fill: var(--ink-3)">catches the change; cannot</text><text class="s" x="16" y="222" style="fill: var(--ink-3)">say who made it</text>
+        </g>
+        <text class="s" x="250" y="330">And the approved list itself? Every version is signed, and a signed pointer names the current one. Copying an old list back in fails at the pointer.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 5: cover tracks -->
+<section class="page">
+  <div class="wrap">
+    <div class="cap"><span class="no">5</span><div><h2>Move five: edit the evidence</h2><p>The last thing an intruder wants is a clean record of what happened. Two protections hold, one is admitted to be weak.</p></div></div>
+    <div class="scene" aria-label="A sealed export rejects an edit; replay recomputes findings from raw lines; the audit log is a plain file and is labeled as such">
+      <svg viewBox="0 0 1100 320" role="img">
+        <g transform="translate(40 40)">
+          <rect width="330" height="230" rx="14" class="box" style="stroke: var(--files)"/><text class="t" x="16" y="30">Sealed export</text>
+          <path d="M16 56 L 196 56 L 196 136 L 16 136 Z" fill="var(--panel)" stroke="var(--files)"/><path d="M16 56 L 106 106 L 196 56" fill="none" stroke="var(--files)"/>
+          <circle cx="106" cy="106" r="14" fill="var(--bad)"/><text class="m" x="106" y="110" text-anchor="middle" style="fill: var(--bg)">✕</text>
+          <text class="s" x="212" y="80">one temperature</text><text class="s" x="212" y="98">changed from 92</text><text class="s" x="212" y="116">to 70 inside</text>
+          <text class="m" x="16" y="166" style="fill: var(--bad)">content does not match its tag</text>
+          <text class="s" x="16" y="192">verify-evidence refuses the bundle.</text><text class="s" x="16" y="210">The key never left the host.</text>
+        </g>
+        <g transform="translate(400 40)">
+          <rect width="330" height="230" rx="14" class="box" style="stroke: var(--net)"/><text class="t" x="16" y="30">Replay from raw lines</text>
+          <text class="s" x="16" y="58">An export carries the original records.</text><text class="s" x="16" y="76">Replay ignores the saved findings and</text><text class="s" x="16" y="94">recomputes them from scratch.</text>
+          <rect x="16" y="112" width="298" height="28" rx="6" fill="var(--panel)" stroke="var(--rule-2)"/><text class="m" x="26" y="131" style="fill: var(--ink-3)">"findings": [{"rule": "fabricated"}]</text>
+          <text class="s" x="16" y="164" style="fill: var(--ink-3)">ignored</text>
+          <rect x="16" y="176" width="298" height="28" rx="6" fill="var(--panel)" stroke="var(--net)"/><text class="m" x="26" y="195">recomputed: thermal, port-spread, …</text>
+          <text class="s" x="16" y="222">Anyone with the export gets the same answer.</text>
+        </g>
+        <g transform="translate(760 40)">
+          <rect width="300" height="230" rx="14" class="box" style="stroke: var(--grey)" stroke-dasharray="6 4"/><text class="t" x="16" y="30">Audit log, stated plainly</text>
+          <text class="s" x="16" y="58">An ordinary file on the host.</text><text class="s" x="16" y="76">Anyone who can write it can</text><text class="s" x="16" y="94">rewrite history.</text>
+          <text class="s" x="16" y="122">The docs call it a record,</text><text class="s" x="16" y="140">never proof.</text>
+          <text class="s" x="16" y="170" style="fill: var(--ink-3)">A cloud version would append to</text><text class="s" x="16" y="188" style="fill: var(--ink-3)">locked object storage with a</text><text class="s" x="16" y="206" style="fill: var(--ink-3)">role that cannot delete.</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 6: defense in depth -->
+<section class="page alt">
+  <div class="wrap">
+    <div class="cap"><span class="no">6</span><div><h2>Six layers, and what each one can and cannot do</h2><p>No single layer is trusted to be enough. That is the whole idea of defense in depth.</p></div></div>
+    <div class="scene" aria-label="Six stacked layers from the outside in: isolation, decoys, detection rules, least privilege, integrity, sealed evidence; each with sees, stops, cannot">
+      <svg viewBox="0 0 1100 420" role="img">
+        <g transform="translate(40 30)">
+          <rect width="1020" height="60" rx="10" fill="var(--panel-2)" stroke="var(--rule-2)"/><text class="t" x="16" y="26">Isolation</text><text class="s" x="16" y="46">internal Docker network, viewer on localhost</text>
+          <text class="s" x="300" y="26" style="fill: var(--good)">stops: traffic leaving the lab</text><text class="s" x="300" y="46" style="fill: var(--ink-3)">cannot: separate one workload from another inside it</text>
+          <text class="m" x="860" y="36" style="fill: var(--ink-3)">compose.lab.yml</text>
+        </g>
+        <g transform="translate(40 95)">
+          <rect width="1020" height="60" rx="10" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="t" x="16" y="26">Decoys</text><text class="s" x="16" y="46">a fake service that no real job needs</text>
+          <text class="s" x="300" y="26" style="fill: var(--good)">sees: anyone looking around</text><text class="s" x="300" y="46" style="fill: var(--ink-3)">cannot: see an intruder who never touches it</text>
+          <text class="m" x="860" y="36" style="fill: var(--ink-3)">opencanary.conf</text>
+        </g>
+        <g transform="translate(40 160)">
+          <rect width="1020" height="60" rx="10" fill="var(--panel-2)" stroke="var(--net)"/><text class="t" x="16" y="26">Detection rules</text><text class="s" x="16" y="46">thresholds, time windows, two joins</text>
+          <text class="s" x="300" y="26" style="fill: var(--good)">sees: heat, surprise work, probing, rhythm, volume</text><text class="s" x="300" y="46" style="fill: var(--ink-3)">cannot: see contents or prove who did it</text>
+          <text class="m" x="860" y="36" style="fill: var(--ink-3)">detection.py, framework.py</text>
+        </g>
+        <g transform="translate(40 225)">
+          <rect width="1020" height="60" rx="10" fill="var(--panel-2)" stroke="var(--files)"/><text class="t" x="16" y="26">Least privilege</text><text class="s" x="16" y="46">guest list plus read-only mount</text>
+          <text class="s" x="300" y="26" style="fill: var(--good)">stops: the worker writing protected files</text><text class="s" x="300" y="46" style="fill: var(--ink-3)">cannot: verify that "training-job" is who it says</text>
+          <text class="m" x="860" y="36" style="fill: var(--ink-3)">policy.json, store.py</text>
+        </g>
+        <g transform="translate(40 290)">
+          <rect width="1020" height="60" rx="10" fill="var(--panel-2)" stroke="var(--files)"/><text class="t" x="16" y="26">Integrity</text><text class="s" x="16" y="46">fingerprints, signed lists, approved pointer</text>
+          <text class="s" x="300" y="26" style="fill: var(--good)">sees: any changed, missing, or planted file</text><text class="s" x="300" y="46" style="fill: var(--ink-3)">cannot: survive a stolen signing key</text>
+          <text class="m" x="860" y="36" style="fill: var(--ink-3)">integrity.py</text>
+        </g>
+        <g transform="translate(40 355)">
+          <rect width="1020" height="60" rx="10" fill="var(--panel-2)" stroke="var(--files)"/><text class="t" x="16" y="26">Sealed evidence</text><text class="s" x="16" y="46">HMAC over exports, replay from raw</text>
+          <text class="s" x="300" y="26" style="fill: var(--good)">sees: any edit after export</text><text class="s" x="300" y="46" style="fill: var(--ink-3)">cannot: know if a sensor lied before export</text>
+          <text class="m" x="860" y="36" style="fill: var(--ink-3)">seal-evidence, replay.py</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 7: escalation -->
+<section class="page">
+  <div class="wrap">
+    <div class="cap"><span class="no">7</span><div><h2>From a finding to a decision</h2><p>Nothing here quarantines a machine or changes a firewall by itself. A finding is a well-labeled question for a person, with the raw lines attached.</p></div></div>
+    <div class="scene" aria-label="Decision flow: a finding arrives, is it operational, investigate, or security; each path ends at a person with evidence attached; automated containment is crossed out">
+      <svg viewBox="0 0 1100 320" role="img">
+        <g transform="translate(40 110)"><rect width="170" height="90" rx="12" class="box"/><text class="t" x="16" y="30">A finding</text><text class="s" x="16" y="52">rule, category, time,</text><text class="s" x="16" y="70">evidence ids</text></g>
+        <path class="rail" d="M210 130 C 260 130, 260 70, 310 70"/><path class="rail" d="M210 155 L 310 155"/><path class="rail" d="M210 180 C 260 180, 260 240, 310 240"/>
+        <g transform="translate(310 40)"><rect width="200" height="60" rx="10" fill="var(--panel-2)" stroke="var(--gpu)"/><text class="t" x="14" y="26">Broken</text><text class="s" x="14" y="46">page the operations team</text></g>
+        <g transform="translate(310 125)"><rect width="200" height="60" rx="10" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="t" x="14" y="26">Look closer</text><text class="s" x="14" y="46">check job owner, destination</text></g>
+        <g transform="translate(310 210)"><rect width="200" height="60" rx="10" fill="var(--panel-2)" stroke="var(--bad)"/><text class="t" x="14" y="26">Should not happen</text><text class="s" x="14" y="46">open an investigation</text></g>
+        <path class="rail" d="M510 70 C 560 70, 560 155, 610 155"/><path class="rail" d="M510 155 L 610 155"/><path class="rail" d="M510 240 C 560 240, 560 155, 610 155"/>
+        <g transform="translate(610 100)"><rect width="220" height="110" rx="14" class="box" style="stroke: var(--ink-3)"/><text class="t" x="16" y="30">A person decides</text><text class="s" x="16" y="54">with the original records,</text><text class="s" x="16" y="72">the explanation, and the</text><text class="s" x="16" y="90">"does not prove" line</text></g>
+        <g transform="translate(870 100)">
+          <rect width="190" height="110" rx="14" fill="var(--panel-2)" stroke="var(--rule-2)" stroke-dasharray="6 4"/>
+          <text class="t" x="16" y="30" style="fill: var(--ink-3)">Auto-contain</text><text class="s" x="16" y="54">quarantine, firewall,</text><text class="s" x="16" y="72">kill the job</text>
+          <line x1="16" y1="90" x2="150" y2="90" stroke="var(--bad)" stroke-width="2"/><text class="s" x="16" y="104" style="fill: var(--bad)">not implemented, on purpose</text>
+        </g>
+        <path class="rail" d="M830 155 L 870 155" stroke-dasharray="3 4"/>
+        <text class="s" x="40" y="300">A system that acts on its own needs certainty the sensors cannot give. Until it can tell a backup job from an exfiltration, it asks.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 8: honest scope -->
+<section class="page alt">
+  <div class="wrap">
+    <div class="cap"><span class="no">8</span><div><h2>What is imitation, what is real, and what a cloud version would add</h2></div></div>
+    <div class="bins">
+      <div class="bin">
+        <svg viewBox="0 0 300 110" aria-hidden="true"><rect x="20" y="20" width="260" height="70" rx="12" fill="var(--panel-2)" stroke="var(--gpu)" stroke-width="2" stroke-dasharray="6 4"/><text class="m" x="150" y="50" text-anchor="middle">scripted, harmless</text><text class="s" x="150" y="72" text-anchor="middle">no malware, no mining, no real theft</text></svg>
+        <h3>The attacker is a script</h3><p>Port knocks, a fake login, heartbeats, dummy uploads, a refused write. Enough to exercise every sensor, nothing that could hurt anything.</p>
+      </div>
+      <div class="bin">
+        <svg viewBox="0 0 300 110" aria-hidden="true"><rect x="20" y="20" width="260" height="70" rx="12" fill="var(--panel-2)" stroke="var(--net)" stroke-width="2"/><text class="m" x="150" y="50" text-anchor="middle">real packets, real refusals</text><text class="s" x="150" y="72" text-anchor="middle">Zeek, OpenCanary, EROFS, HMAC</text></svg>
+        <h3>The defenses are real</h3><p>The camera captures actual traffic, the decoy logs actual touches, the kernel actually refuses the write, and the seal actually breaks.</p>
+      </div>
+      <div class="bin">
+        <svg viewBox="0 0 300 110" aria-hidden="true"><rect x="20" y="20" width="260" height="70" rx="12" fill="var(--panel-2)" stroke="var(--files)" stroke-width="2" stroke-dasharray="6 4"/><text class="m" x="150" y="50" text-anchor="middle">proposed, not deployed</text><text class="s" x="150" y="72" text-anchor="middle">IAM, KMS, Object Lock, CloudTrail</text></svg>
+        <h3>What the cloud would fix</h3><p>Real identities per role, a signing key nobody can read, evidence storage nobody can delete, and an audit of every API call. Written up, not built.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="back">
+  <div class="wrap">
+    <h2>Keep reading</h2>
+    <ul>
+      <li>Book one, the ingestion picture book: <a href="index.html">inside a data center, one second at a time</a></li>
+      <li>The lab, its network, and the two minute cycle: <code>docs/09-local-security-lab.md</code></li>
+      <li>The cabinet, the layers, and their limits: <code>docs/13-data-security-and-integrity.md</code></li>
+      <li>The proposed cloud version: <code>docs/12-aws-architecture.md</code></li>
+    </ul>
+    <small>Source: <a href="https://github.com/nsirivolu27/quantum-datacenter-anomaly" rel="noopener">quantum-datacenter-anomaly</a>. All attacker moves are scripted inside an isolated Docker network. MIT license.</small>
+  </div>
+</footer>
+
+</body>
+</html>

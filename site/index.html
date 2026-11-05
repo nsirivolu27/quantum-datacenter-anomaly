@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A picture book of how a data center server is watched, how odd behavior is caught, and how valuable files are kept from quiet changes.">
+<title>Sentinel Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a picture book. Each page is one large illustrated scene with a one-line caption.
+   Dark first, like a data hall at night; the four stream colors never change meaning. */
+:root {
+  --bg: #0c1118; --bg-2: #111823; --panel: #161f2b; --panel-2: #1c2735; --ink: #eef3f9; --ink-2: #b9c4d2; --ink-3: #7f8ca0;
+  --rule: #273343; --rule-2: #3a4859;
+  --gpu: #f4a83a; --net: #6f97ff; --decoy: #e46ff2; --files: #43d3a0; --bad: #ff7a7a; --warn: #f4a83a; --good: #43d3a0; --grey: #8b95a5;
+  --display: "Outfit", "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+  --body: "Atkinson Hyperlegible", Verdana, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --maxw: 1120px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f6fa; --bg-2: #eaeef4; --panel: #ffffff; --panel-2: #f1f4f8; --ink: #121821; --ink-2: #3b4656; --ink-3: #6d7a8d;
+    --rule: #d7dde7; --rule-2: #bcc6d3;
+    --gpu: #d47a0a; --net: #2a5bd7; --decoy: #b426c5; --files: #0f8f66; --bad: #c62828; --warn: #d47a0a; --good: #0f8f66; --grey: #8b95a5;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f4f6fa; --bg-2: #eaeef4; --panel: #ffffff; --panel-2: #f1f4f8; --ink: #121821; --ink-2: #3b4656; --ink-3: #6d7a8d;
+  --rule: #d7dde7; --rule-2: #bcc6d3;
+  --gpu: #d47a0a; --net: #2a5bd7; --decoy: #b426c5; --files: #0f8f66; --bad: #c62828; --warn: #d47a0a; --good: #0f8f66; --grey: #8b95a5;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+a { color: var(--net); }
+:focus-visible { outline: 3px solid var(--gpu); outline-offset: 2px; }
+.wrap { max-width: var(--maxw); margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* book pages */
+.page { padding-block: 56px; border-top: 1px solid var(--rule); }
+.page:first-of-type { border-top: 0; }
+.page.alt { background: var(--bg-2); }
+.cap { display: grid; grid-template-columns: 56px 1fr; gap: 18px; align-items: start; margin-bottom: 22px; }
+.cap .no { font-family: var(--display); font-weight: 700; font-size: 40px; line-height: 1; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.cap h2 { font-family: var(--display); font-weight: 600; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; margin: 0; text-wrap: balance; }
+.cap p { margin: 6px 0 0; color: var(--ink-2); max-width: 60ch; font-size: 17px; }
+.scene { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 14px; overflow-x: auto; }
+.scene svg { display: block; width: 100%; height: auto; min-width: 720px; }
+.scene text, .hall text { font-family: var(--body); fill: var(--ink); font-size: 14px; }
+.scene .t, .hall .t { font-family: var(--display); font-weight: 600; font-size: 17px; }
+.scene .s, .hall .s { fill: var(--ink-3); font-size: 12.5px; }
+.scene .m, .hall .m { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+.scene .box, .hall .box { fill: var(--panel-2); stroke: var(--rule-2); }
+.scene .rail, .hall .rail { fill: none; stroke: var(--rule-2); stroke-width: 2; }
+.scene .flow, .hall .flow { fill: none; stroke-width: 3; stroke-linecap: round; }
+.f-gpu { stroke: var(--gpu); } .f-net { stroke: var(--net); } .f-decoy { stroke: var(--decoy); } .f-files { stroke: var(--files); } .f-grey { stroke: var(--grey); }
+.d-gpu { fill: var(--gpu); } .d-net { fill: var(--net); } .d-decoy { fill: var(--decoy); } .d-files { fill: var(--files); } .d-grey { fill: var(--grey); } .d-bad { fill: var(--bad); } .d-good { fill: var(--good); }
+.foot { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; color: var(--ink-3); padding: 12px 4px 2px; }
+.foot span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: -1px; background: var(--grey); }
+.foot .gpu::before { background: var(--gpu); } .foot .net::before { background: var(--net); } .foot .decoy::before { background: var(--decoy); } .foot .files::before { background: var(--files); } .foot .bad::before { background: var(--bad); }
+
+/* cover */
+.cover { padding-block: 48px 40px; }
+.cover h1 { font-family: var(--display); font-weight: 700; font-size: clamp(40px, 7vw, 86px); line-height: 0.98; margin: 0 0 14px; letter-spacing: -0.01em; max-width: 12ch; }
+.cover p { color: var(--ink-2); font-size: 19px; max-width: 52ch; margin: 0 0 28px; }
+.hall { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; overflow: hidden; }
+.hall svg { display: block; width: 100%; height: auto; }
+.led { animation: blink 2.4s infinite; }
+.led:nth-child(3n) { animation-delay: .8s; } .led:nth-child(3n+1) { animation-delay: 1.6s; }
+@keyframes blink { 0%, 60% { opacity: 1 } 70% { opacity: .25 } 80%, 100% { opacity: 1 } }
+
+/* animations */
+.breath { animation: breath 4s ease-in-out infinite; transform-origin: left center; }
+@keyframes breath { 0%, 100% { transform: scaleX(.45) } 50% { transform: scaleX(.92) } }
+.needle { animation: needle 4s ease-in-out infinite; transform-origin: 0 0; }
+@keyframes needle { 0%, 100% { transform: rotate(-20deg) } 50% { transform: rotate(38deg) } }
+.pulse { animation: pulse 1.6s ease-out infinite; transform-origin: center; }
+@keyframes pulse { 0% { opacity: .9; transform: scale(.6) } 100% { opacity: 0; transform: scale(1.8) } }
+.tick { animation: tick 1s steps(1) infinite; }
+@keyframes tick { 0% { opacity: 1 } 50% { opacity: .35 } }
+.sweep { animation: sweep 12s linear infinite; }
+@keyframes sweep { from { transform: translateX(0) } to { transform: translateX(700px) } }
+.pop { opacity: 0; animation-duration: 12s; animation-timing-function: linear; animation-iteration-count: infinite; }
+.pop.at12 { animation-name: pop12; }
+@keyframes pop12 { 0%, 12% { opacity: 0 } 13%, 100% { opacity: 1 } }
+.pop.at20 { animation-name: pop20; }
+@keyframes pop20 { 0%, 20% { opacity: 0 } 21%, 100% { opacity: 1 } }
+.pop.at34 { animation-name: pop34; }
+@keyframes pop34 { 0%, 34% { opacity: 0 } 35%, 100% { opacity: 1 } }
+.pop.at36 { animation-name: pop36; }
+@keyframes pop36 { 0%, 36% { opacity: 0 } 37%, 100% { opacity: 1 } }
+.pop.at62 { animation-name: pop62; }
+@keyframes pop62 { 0%, 62% { opacity: 0 } 63%, 100% { opacity: 1 } }
+.pop.at78 { animation-name: pop78; }
+@keyframes pop78 { 0%, 78% { opacity: 0 } 79%, 100% { opacity: 1 } }
+.pop.at82 { animation-name: pop82; }
+@keyframes pop82 { 0%, 82% { opacity: 0 } 83%, 100% { opacity: 1 } }
+.pop.at84 { animation-name: pop84; }
+@keyframes pop84 { 0%, 84% { opacity: 0 } 85%, 100% { opacity: 1 } }
+.pop.at86 { animation-name: pop86; }
+@keyframes pop86 { 0%, 86% { opacity: 0 } 87%, 100% { opacity: 1 } }
+.fall { animation: fall 2.6s ease-in infinite; }
+@keyframes fall { 0% { transform: translateY(0); opacity: 1 } 80% { opacity: 1 } 100% { transform: translateY(70px); opacity: 0 } }
+.glow { animation: glow 2.6s infinite; }
+@keyframes glow { 0%, 55% { opacity: .35 } 62%, 85% { opacity: 1 } 100% { opacity: .35 } }
+.shake { animation: shake 3s infinite; transform-origin: center; }
+@keyframes shake { 0%, 70%, 100% { transform: translateX(0) } 74% { transform: translateX(-3px) } 78% { transform: translateX(3px) } 82% { transform: translateX(-2px) } 86% { transform: translateX(0) } }
+.spin { animation: spin 6s linear infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes spin { to { transform: rotate(360deg) } }
+@media (prefers-reduced-motion: reduce) { .mover, .pulse { display: none } .breath, .needle, .tick, .sweep, .pop, .fall, .glow, .shake, .spin, .led { animation: none !important; opacity: 1 } }
+
+/* counters (lambda console feel) */
+.counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+.ctr { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.ctr b { font-family: var(--display); font-weight: 600; font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
+.ctr span { font-size: 13px; color: var(--ink-3); }
+@media (max-width: 700px) { .counters { grid-template-columns: repeat(2, 1fr); } }
+
+/* three bins */
+.bins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.bin { background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 16px; display: grid; gap: 8px; }
+.bin svg { width: 100%; height: auto; display: block; }
+.bin h3 { font-family: var(--display); font-weight: 600; font-size: 22px; margin: 0; }
+.bin p { margin: 0; color: var(--ink-2); font-size: 15px; }
+@media (max-width: 760px) { .bins { grid-template-columns: 1fr; } }
+
+/* back cover */
+.back { padding-block: 48px 64px; color: var(--ink-2); }
+.back .wrap { display: grid; gap: 16px; }
+.back h2 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0; }
+.back ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 16px; }
+.back small { color: var(--ink-3); font-size: 13px; }
+</style>
+</head>
+<body>
+
+
+
+
+<header class="wrap cover">
+  <h1>Inside a data center, one second at a time</h1>
+  <p>A picture book of how a server is watched, how odd behavior is caught, and how the valuable files are kept from being changed quietly. Built from a working lab, drawn page by page.</p>
+  <div class="hall" aria-label="A data hall at night: rows of server racks with one rack highlighted">
+    <svg viewBox="0 0 1120 360" role="img">
+      <defs><linearGradient id="floor" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--panel)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient></defs>
+      <rect width="1120" height="360" fill="url(#floor)"/>
+      <g id="racks">
+        <!-- back row -->
+        <g transform="translate(90 60)">
+          <g><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="50" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="66" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="82" r="3" fill="var(--good)"/></g></g>
+          <g transform="translate(90 0)"><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="50" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="66" r="3" fill="var(--good)"/></g></g>
+          <g transform="translate(180 0)"><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="50" r="3" fill="var(--good)"/></g></g>
+          <g transform="translate(270 0)"><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="50" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="66" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="82" r="3" fill="var(--good)"/></g></g>
+          <g transform="translate(360 0)"><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/></g></g>
+          <g transform="translate(450 0)"><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="50" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="66" r="3" fill="var(--good)"/></g></g>
+          <g transform="translate(540 0)"><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="50" r="3" fill="var(--good)"/></g></g>
+          <g transform="translate(630 0)"><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="50" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="66" r="3" fill="var(--good)"/></g></g>
+          <g transform="translate(720 0)"><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/></g></g>
+          <g transform="translate(810 0)"><rect width="70" height="130" rx="6" class="box"/><g><circle class="led" cx="14" cy="18" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="34" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="50" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="66" r="3" fill="var(--good)"/><circle class="led" cx="14" cy="82" r="3" fill="var(--good)"/></g></g>
+        </g>
+        <!-- front row, one highlighted -->
+        <g transform="translate(40 190)">
+          <g><rect width="86" height="150" rx="7" class="box"/><circle class="led" cx="16" cy="20" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="40" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="60" r="3.5" fill="var(--good)"/></g>
+          <g transform="translate(110 0)"><rect width="86" height="150" rx="7" class="box"/><circle class="led" cx="16" cy="20" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="40" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="60" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="80" r="3.5" fill="var(--good)"/></g>
+          <g transform="translate(220 0)"><rect width="86" height="150" rx="7" class="box"/><circle class="led" cx="16" cy="20" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="40" r="3.5" fill="var(--good)"/></g>
+          <g transform="translate(330 0)">
+            <rect width="86" height="150" rx="7" fill="var(--panel-2)" stroke="var(--gpu)" stroke-width="2"/>
+            <circle class="led" cx="16" cy="20" r="3.5" fill="var(--gpu)"/><circle class="led" cx="16" cy="40" r="3.5" fill="var(--gpu)"/><circle class="led" cx="16" cy="60" r="3.5" fill="var(--gpu)"/><circle class="led" cx="16" cy="80" r="3.5" fill="var(--gpu)"/>
+            <rect x="32" y="16" width="42" height="8" rx="4" fill="var(--rule)"/><rect class="breath" x="32" y="16" width="42" height="8" rx="4" fill="var(--gpu)"/>
+            <text class="m" x="43" y="175" fill="var(--gpu)" style="fill: var(--gpu)" text-anchor="middle">compute-01</text>
+            <circle class="pulse" cx="43" cy="75" r="40" fill="none" stroke="var(--gpu)" stroke-width="2"/>
+          </g>
+          <g transform="translate(440 0)"><rect width="86" height="150" rx="7" class="box"/><circle class="led" cx="16" cy="20" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="40" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="60" r="3.5" fill="var(--good)"/></g>
+          <g transform="translate(550 0)"><rect width="86" height="150" rx="7" class="box"/><circle class="led" cx="16" cy="20" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="40" r="3.5" fill="var(--good)"/></g>
+          <g transform="translate(660 0)"><rect width="86" height="150" rx="7" class="box"/><circle class="led" cx="16" cy="20" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="40" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="60" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="80" r="3.5" fill="var(--good)"/></g>
+          <g transform="translate(770 0)"><rect width="86" height="150" rx="7" class="box"/><circle class="led" cx="16" cy="20" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="40" r="3.5" fill="var(--good)"/></g>
+          <g transform="translate(880 0)"><rect width="86" height="150" rx="7" class="box"/><circle class="led" cx="16" cy="20" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="40" r="3.5" fill="var(--good)"/><circle class="led" cx="16" cy="60" r="3.5" fill="var(--good)"/></g>
+        </g>
+      </g>
+      <text class="s" x="1090" y="340" text-anchor="end">Hundreds of racks. This book follows one.</text>
+    </svg>
+  </div>
+</header>
+
+<!-- PAGE 1: one server breathing -->
+<section class="page">
+  <div class="wrap">
+    <div class="cap"><span class="no">1</span><div><h2>A server never stops talking about itself</h2><p>Every second: how busy the GPU is, how hot, how much power, and which computers it is connected to.</p></div></div>
+    <div class="scene" aria-label="One server with live gauges for utilization, temperature, and power, and three connections pulsing to other computers">
+      <svg viewBox="0 0 1100 330" role="img">
+        <rect class="box" x="30" y="30" width="330" height="270" rx="16"/>
+        <text class="t" x="54" y="64">compute-01</text><text class="s" x="54" y="84">one GPU server</text>
+        <!-- utilization -->
+        <text x="54" y="124">GPU busy</text><rect x="150" y="113" width="180" height="14" rx="7" fill="var(--rule)"/><rect class="breath" x="150" y="113" width="180" height="14" rx="7" fill="var(--gpu)"/>
+        <!-- temperature gauge -->
+        <text x="54" y="176">temperature</text>
+        <g transform="translate(240 200)"><path d="M-60 0 A60 60 0 0 1 60 0" fill="none" stroke="var(--rule)" stroke-width="10"/><path d="M20 -56 A60 60 0 0 1 60 0" fill="none" stroke="var(--bad)" stroke-width="10" opacity=".7"/><g class="needle"><line x1="0" y1="0" x2="0" y2="-50" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/></g><circle r="5" fill="var(--ink)"/></g>
+        <text class="s" x="170" y="222">40 °C</text><text class="s" x="290" y="222">95 °C</text><text class="s" x="246" y="140" style="fill: var(--bad)">85 °C line</text>
+        <!-- power -->
+        <text x="54" y="262">power</text><g class="tick"><text class="m" x="150" y="262" style="font-size:16px">246 W</text></g>
+        <!-- connections -->
+        <path class="flow f-net" d="M360 110 C 520 110, 560 70, 700 70"/>
+        <path class="flow f-net" d="M360 165 C 520 165, 560 165, 700 165"/>
+        <path class="flow f-net" d="M360 220 C 520 220, 560 260, 700 260" stroke-dasharray="6 8"/>
+        <g class="mover"><circle r="5" class="d-net"><animateMotion dur="2s" repeatCount="indefinite" path="M360 110 C 520 110, 560 70, 700 70"/></circle><circle r="5" class="d-net"><animateMotion dur="2s" begin="1s" repeatCount="indefinite" path="M360 165 C 520 165, 560 165, 700 165"/></circle></g>
+        <rect class="box" x="700" y="45" width="220" height="50" rx="10"/><text class="t" x="716" y="68">Approved service</text><text class="s" x="716" y="86">normal, every 2 seconds</text>
+        <rect class="box" x="700" y="140" width="220" height="50" rx="10"/><text class="t" x="716" y="163">Storage</text><text class="s" x="716" y="181">datasets and models</text>
+        <rect x="700" y="235" width="220" height="50" rx="10" fill="var(--panel-2)" stroke="var(--decoy)" stroke-dasharray="5 4"/><text class="t" x="716" y="258">A door nobody uses</text><text class="s" x="716" y="276">the decoy, quiet for now</text>
+        <text class="s" x="960" y="175">Every one of these</text><text class="s" x="960" y="193">is a signal someone</text><text class="s" x="960" y="211">could listen to.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- PAGE 2: sensors listen -->
+<section class="page alt">
+  <div class="wrap">
+    <div class="cap"><span class="no">2</span><div><h2>Four listeners, each with one job</h2><p>A thermometer, a traffic camera, a fake door, and a visitor log for the file cabinet. None of them talk to each other.</p></div></div>
+    <div class="scene" aria-label="Four streams leave the server toward four sensors: thermometer log, Zeek, OpenCanary, and the cabinet visitor log">
+      <svg viewBox="0 0 1100 360" role="img">
+        <defs>
+          <path id="q1" d="M250 120 C 400 120, 440 90, 600 90"/><path id="q2" d="M250 160 C 400 160, 440 165, 600 165"/>
+          <path id="q3" d="M250 200 C 400 200, 440 240, 600 240"/><path id="q4" d="M250 240 C 400 240, 440 315, 600 315"/>
+        </defs>
+        <rect class="box" x="40" y="70" width="210" height="200" rx="14"/><text class="t" x="60" y="100">compute-01</text><text class="s" x="60" y="120">the server from page 1</text>
+        <rect x="60" y="138" width="170" height="12" rx="6" fill="var(--rule)"/><rect class="breath" x="60" y="138" width="170" height="12" rx="6" fill="var(--gpu)"/>
+        <text class="s" x="60" y="172">busy 84%</text><text class="s" x="60" y="196">67 °C, 246 W</text><text class="s" x="60" y="220">3 connections open</text><text class="s" x="60" y="244">1 file request</text>
+        <use href="#q1" class="flow f-gpu"/><use href="#q2" class="flow f-net"/><use href="#q3" class="flow f-decoy"/><use href="#q4" class="flow f-files"/>
+        <text class="s" x="300" y="110">readings</text><text class="s" x="300" y="150">connections</text><text class="s" x="300" y="190">knocks on the fake door</text><text class="s" x="300" y="230">file requests</text>
+        <g class="mover">
+          <circle r="5" class="d-gpu"><animateMotion dur="3s" repeatCount="indefinite"><mpath href="#q1"/></animateMotion></circle>
+          <circle r="5" class="d-net"><animateMotion dur="2.4s" begin=".6s" repeatCount="indefinite"><mpath href="#q2"/></animateMotion></circle>
+          <circle r="5" class="d-decoy"><animateMotion dur="4.2s" begin="1.8s" repeatCount="indefinite"><mpath href="#q3"/></animateMotion></circle>
+          <circle r="5" class="d-files"><animateMotion dur="3.6s" begin="1.1s" repeatCount="indefinite"><mpath href="#q4"/></animateMotion></circle>
+        </g>
+        <g><rect class="box" x="600" y="65" width="250" height="50" rx="10" style="stroke: var(--gpu)"/><text class="t" x="616" y="87">Thermometer log</text><text class="s" x="616" y="105">a script writes the numbers (simulated)</text></g>
+        <g><rect class="box" x="600" y="140" width="250" height="50" rx="10" style="stroke: var(--net)"/><text class="t" x="616" y="162">Zeek, the traffic camera</text><text class="s" x="616" y="180">real packets, sees sizes not contents</text></g>
+        <g><rect class="box" x="600" y="215" width="250" height="50" rx="10" style="stroke: var(--decoy)"/><text class="t" x="616" y="237">OpenCanary, the fake door</text><text class="s" x="616" y="255">real events, any touch counts</text></g>
+        <g><rect class="box" x="600" y="290" width="250" height="50" rx="10" style="stroke: var(--files)"/><text class="t" x="616" y="312">Cabinet visitor log</text><text class="s" x="616" y="330">who asked for which file, yes or no</text></g>
+        <text class="s" x="880" y="90">gpu.jsonl</text><text class="s" x="880" y="165">zeek/conn.log</text><text class="s" x="880" y="240">canary/events.jsonl</text><text class="s" x="880" y="315">audit.jsonl</text>
+        <text class="m" x="880" y="112">1 line per second</text><text class="m" x="880" y="187">1 line per connection</text><text class="m" x="880" y="262">1 line per touch</text><text class="m" x="880" y="337">1 line per request</text>
+      </svg>
+    </div>
+    <div class="foot"><span class="gpu">simulated by a script</span><span class="net">real</span><span class="decoy">real</span><span class="files">kept only on the host computer</span></div>
+  </div>
+</section>
+
+<!-- PAGE 3: scale -->
+<section class="page">
+  <div class="wrap">
+    <div class="cap"><span class="no">3</span><div><h2>Now imagine the whole hall doing that</h2><p>Each server keeps its own listeners next to it. Records flow into a collector that only ever sees clean, time-stamped lines, so adding servers adds lines, not new kinds of work.</p></div></div>
+    <div class="scene" aria-label="A grid of many servers, each sending records into a shared collector that fans out to findings">
+      <svg viewBox="0 0 1100 380" role="img">
+        <g id="grid">
+          <g transform="translate(40 40)">
+            <g><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/></g>
+            <g transform="translate(70 0)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/></g>
+            <g transform="translate(140 0)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/><circle cx="12" cy="36" r="3" class="led d-good"/></g>
+            <g transform="translate(210 0)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/></g>
+            <g transform="translate(0 70)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/></g>
+            <g transform="translate(70 70)"><rect width="56" height="56" rx="8" fill="var(--panel-2)" stroke="var(--gpu)" stroke-width="2"/><circle cx="12" cy="12" r="3" class="led d-gpu"/><circle cx="12" cy="24" r="3" class="led d-gpu"/><circle cx="12" cy="36" r="3" class="led d-gpu"/></g>
+            <g transform="translate(140 70)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/></g>
+            <g transform="translate(210 70)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/></g>
+            <g transform="translate(0 140)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/></g>
+            <g transform="translate(70 140)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/></g>
+            <g transform="translate(140 140)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/><circle cx="12" cy="36" r="3" class="led d-good"/></g>
+            <g transform="translate(210 140)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/></g>
+            <g transform="translate(0 210)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/></g>
+            <g transform="translate(70 210)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/></g>
+            <g transform="translate(140 210)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/></g>
+            <g transform="translate(210 210)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/><circle cx="12" cy="36" r="3" class="led d-good"/></g>
+          </g>
+          <text class="s" x="40" y="330">16 servers shown. Each one has its own thermometer, camera, and door.</text>
+        </g>
+        <!-- streams converge -->
+        <defs>
+          <path id="c1" d="M310 70 C 420 70, 440 180, 560 180"/><path id="c2" d="M310 140 C 420 140, 440 180, 560 180"/>
+          <path id="c3" d="M310 210 C 420 210, 440 180, 560 180"/><path id="c4" d="M310 280 C 420 280, 440 180, 560 180"/>
+          <path id="o1" d="M760 180 C 820 180, 840 110, 900 110"/><path id="o2" d="M760 180 L 900 180"/><path id="o3" d="M760 180 C 820 180, 840 250, 900 250"/>
+        </defs>
+        <use href="#c1" class="flow f-gpu" opacity=".7"/><use href="#c2" class="flow f-net" opacity=".7"/><use href="#c3" class="flow f-decoy" opacity=".7"/><use href="#c4" class="flow f-files" opacity=".7"/>
+        <g class="mover">
+          <circle r="4" class="d-gpu"><animateMotion dur="2.2s" repeatCount="indefinite"><mpath href="#c1"/></animateMotion></circle>
+          <circle r="4" class="d-gpu"><animateMotion dur="2.2s" begin="1.1s" repeatCount="indefinite"><mpath href="#c1"/></animateMotion></circle>
+          <circle r="4" class="d-net"><animateMotion dur="1.8s" begin=".3s" repeatCount="indefinite"><mpath href="#c2"/></animateMotion></circle>
+          <circle r="4" class="d-net"><animateMotion dur="1.8s" begin="1.2s" repeatCount="indefinite"><mpath href="#c2"/></animateMotion></circle>
+          <circle r="4" class="d-decoy"><animateMotion dur="3.4s" begin=".9s" repeatCount="indefinite"><mpath href="#c3"/></animateMotion></circle>
+          <circle r="4" class="d-files"><animateMotion dur="2.8s" begin=".5s" repeatCount="indefinite"><mpath href="#c4"/></animateMotion></circle>
+          <circle r="4" class="d-grey"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#o2"/></animateMotion></circle>
+          <circle r="4" class="d-grey"><animateMotion dur="1.9s" begin=".7s" repeatCount="indefinite"><mpath href="#o1"/></animateMotion></circle>
+          <circle r="4" class="d-grey"><animateMotion dur="2.1s" begin="1.3s" repeatCount="indefinite"><mpath href="#o3"/></animateMotion></circle>
+        </g>
+        <!-- collector -->
+        <rect class="box" x="560" y="120" width="200" height="120" rx="14" style="stroke: var(--ink-3)"/>
+        <text class="t" x="580" y="150">Collector</text><text class="s" x="580" y="170">joins lines by time and</text><text class="s" x="580" y="186">which server sent them</text>
+        <g class="spin"><circle cx="730" cy="150" r="10" fill="none" stroke="var(--ink-3)" stroke-width="3" stroke-dasharray="20 44"/></g>
+        <text class="m" x="580" y="222">every second</text>
+        <use href="#o1" class="rail"/><use href="#o2" class="rail"/><use href="#o3" class="rail"/>
+        <rect class="box" x="900" y="85" width="170" height="50" rx="10" style="stroke: var(--gpu)"/><text class="t" x="916" y="107">Rules</text><text class="s" x="916" y="125">thresholds, time windows</text>
+        <rect class="box" x="900" y="155" width="170" height="50" rx="10" style="stroke: var(--net)"/><text class="t" x="916" y="177">Pattern model</text><text class="s" x="916" y="195">context, not a verdict</text>
+        <rect class="box" x="900" y="225" width="170" height="50" rx="10" style="stroke: var(--files)"/><text class="t" x="916" y="247">Evidence export</text><text class="s" x="916" y="265">sealed, replayable</text>
+        <text class="s" x="560" y="330">In the lab there is one server and one collector. In a cloud version the same lines would land in CloudWatch and S3 instead of a folder.</text>
+      </svg>
+    </div>
+    <div class="counters">
+      <div class="ctr"><b>1 / s</b><span>GPU readings per server</span></div>
+      <div class="ctr"><b>~0.6 / s</b><span>connections per server in the lab cycle</span></div>
+      <div class="ctr"><b>4,000</b><span>lines the collector reads per source, per pass</span></div>
+      <div class="ctr"><b>1,500</b><span>evidence records kept in one snapshot</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PAGE 4: cleaning funnel -->
+<section class="page alt">
+  <div class="wrap">
+    <div class="cap"><span class="no">4</span><div><h2>Before anything is judged, it is cleaned</h2><p>Old lines, duplicates, broken lines, and lines from other machines fall out. Only what is left reaches the rules.</p></div></div>
+    <div class="scene" aria-label="Records drop into a funnel; rejected ones fall away labeled old run, duplicate, broken, other machine; survivors continue to the rules">
+      <svg viewBox="0 0 1100 340" role="img">
+        <!-- incoming lines -->
+        <g>
+          <rect x="60" y="40" width="130" height="22" rx="5" fill="var(--panel-2)" stroke="var(--gpu)"/><text class="m" x="70" y="56">ts run node 86%</text>
+          <rect x="60" y="72" width="130" height="22" rx="5" fill="var(--panel-2)" stroke="var(--net)"/><text class="m" x="70" y="88">conn 66 kB SF</text>
+          <rect x="60" y="104" width="130" height="22" rx="5" fill="var(--panel-2)" stroke="var(--net)" stroke-dasharray="4 3"/><text class="m" x="70" y="120">conn (old run)</text>
+          <rect x="60" y="136" width="130" height="22" rx="5" fill="var(--panel-2)" stroke="var(--gpu)" stroke-dasharray="4 3"/><text class="m" x="70" y="152">ts NaN …</text>
+          <rect x="60" y="168" width="130" height="22" rx="5" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="m" x="70" y="184">login attempt</text>
+          <rect x="60" y="200" width="130" height="22" rx="5" fill="var(--panel-2)" stroke="var(--net)" stroke-dasharray="4 3"/><text class="m" x="70" y="216">conn (same uid)</text>
+          <rect x="60" y="232" width="130" height="22" rx="5" fill="var(--panel-2)" stroke="var(--files)"/><text class="m" x="70" y="248">write: denied</text>
+          <rect x="60" y="264" width="130" height="22" rx="5" fill="var(--panel-2)" stroke="var(--decoy)" stroke-dasharray="4 3"/><text class="m" x="70" y="280">decoy startup msg</text>
+        </g>
+        <!-- funnel -->
+        <path d="M240 30 L 520 30 L 440 170 L 440 300 L 320 300 L 320 170 Z" fill="var(--panel-2)" stroke="var(--rule-2)" stroke-width="2"/>
+        <text class="t" x="380" y="70" text-anchor="middle">Normalize</text>
+        <text class="s" x="380" y="92" text-anchor="middle">right run? right machine?</text>
+        <text class="s" x="380" y="110" text-anchor="middle">every field present? seen before?</text>
+        <!-- rejects falling -->
+        <g class="fall"><rect x="560" y="120" width="110" height="20" rx="5" fill="var(--panel-2)" stroke="var(--rule-2)"/><text class="m" x="568" y="134" style="fill: var(--ink-3)">old run</text></g>
+        <g class="fall" style="animation-delay:.6s"><rect x="560" y="150" width="110" height="20" rx="5" fill="var(--panel-2)" stroke="var(--rule-2)"/><text class="m" x="568" y="164" style="fill: var(--ink-3)">duplicate uid</text></g>
+        <g class="fall" style="animation-delay:1.2s"><rect x="560" y="180" width="110" height="20" rx="5" fill="var(--panel-2)" stroke="var(--rule-2)"/><text class="m" x="568" y="194" style="fill: var(--ink-3)">bad number</text></g>
+        <g class="fall" style="animation-delay:1.8s"><rect x="560" y="210" width="110" height="20" rx="5" fill="var(--panel-2)" stroke="var(--rule-2)"/><text class="m" x="568" y="224" style="fill: var(--ink-3)">not the worker</text></g>
+        <text class="s" x="560" y="300">dropped and counted as bad records</text>
+        <!-- survivors -->
+        <path class="rail" d="M440 230 L 720 230"/>
+        <g class="mover">
+          <circle r="5" class="d-gpu"><animateMotion dur="2.4s" repeatCount="indefinite" path="M440 230 L 720 230"/></circle>
+          <circle r="5" class="d-net"><animateMotion dur="2.4s" begin=".8s" repeatCount="indefinite" path="M440 230 L 720 230"/></circle>
+          <circle r="5" class="d-files"><animateMotion dur="2.4s" begin="1.6s" repeatCount="indefinite" path="M440 230 L 720 230"/></circle>
+        </g>
+        <rect class="box" x="720" y="180" width="330" height="100" rx="14"/>
+        <text class="t" x="740" y="208">Clean batch</text>
+        <text class="s" x="740" y="228">GPU rows, connections, door events, cabinet</text>
+        <text class="s" x="740" y="246">requests, each still carrying its raw line</text>
+        <text class="m" x="740" y="268">TelemetryBatch</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- PAGE 5: rules light up -->
+<section class="page">
+  <div class="wrap">
+    <div class="cap"><span class="no">5</span><div><h2>Rules are simple questions with numbers in them</h2><p>Each rule watches one thing. Two of them watch two things at once, and only count when the same machine and the same few seconds are involved.</p></div></div>
+    <div class="scene" aria-label="Rule cards that light up when matching records pass">
+      <svg viewBox="0 0 1100 360" role="img">
+        <g transform="translate(40 30)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--gpu)"/><g class="glow"><rect width="240" height="88" rx="12" fill="none" stroke="var(--gpu)" stroke-width="3"/></g>
+          <text class="t" x="16" y="30">Too hot?</text><text class="s" x="16" y="52">temperature ≥ 85 °C</text><text class="m" x="16" y="74">thermal</text>
+        </g>
+        <g transform="translate(300 30)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--gpu)"/><g class="glow" style="animation-delay:.4s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--gpu)" stroke-width="3"/></g>
+          <text class="t" x="16" y="30">Busy with no job?</text><text class="s" x="16" y="52">≥ 70% and no approved job</text><text class="m" x="16" y="74">unapproved-compute</text>
+        </g>
+        <g transform="translate(560 30)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--decoy)"/><g class="glow" style="animation-delay:.8s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--decoy)" stroke-width="3"/></g>
+          <text class="t" x="16" y="30">Touched the fake door?</text><text class="s" x="16" y="52">one event is enough</text><text class="m" x="16" y="74">honeypot-contact</text>
+        </g>
+        <g transform="translate(820 30)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--net)"/><g class="glow" style="animation-delay:1.2s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--net)" stroke-width="3"/></g>
+          <text class="t" x="16" y="30">Trying many doors?</text><text class="s" x="16" y="52">6 ports on one machine in 20 s</text><text class="m" x="16" y="74">port-spread</text>
+        </g>
+        <g transform="translate(40 140)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--net)"/><g class="glow" style="animation-delay:1.6s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--net)" stroke-width="3"/></g>
+          <text class="t" x="16" y="30">Too regular?</text><text class="s" x="16" y="52">6 calls, almost identical spacing</text><text class="m" x="16" y="74">periodic-connection</text>
+        </g>
+        <g transform="translate(300 140)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--net)"/><g class="glow" style="animation-delay:2s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--net)" stroke-width="3"/></g>
+          <text class="t" x="16" y="30">Too much, too fast?</text><text class="s" x="16" y="52">150 kB to one stranger in 60 s</text><text class="m" x="16" y="74">outbound-volume</text>
+        </g>
+        <g transform="translate(560 140)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--files)"/><g class="glow" style="animation-delay:2.4s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--files)" stroke-width="3"/></g>
+          <text class="t" x="16" y="30">Told no?</text><text class="s" x="16" y="52">the cabinet refused a request</text><text class="m" x="16" y="74">access-policy-violation</text>
+        </g>
+        <g transform="translate(820 140)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--files)"/><g class="glow" style="animation-delay:2.8s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--files)" stroke-width="3"/></g>
+          <text class="t" x="16" y="30">Fingerprint changed?</text><text class="s" x="16" y="52">a file no longer matches the list</text><text class="m" x="16" y="74">integrity-failure</text>
+        </g>
+        <!-- joins -->
+        <g transform="translate(170 250)">
+          <rect class="box" width="370" height="88" rx="12" style="stroke: var(--ink-3)"/>
+          <circle cx="24" cy="30" r="8" class="d-gpu"/><text x="40" y="35">+</text><circle cx="64" cy="30" r="8" class="d-net"/>
+          <text class="t" x="86" y="35">Busy with no job, and a big upload</text><text class="s" x="16" y="58">same machine, within 5 seconds</text><text class="m" x="16" y="78">compute-network-overlap</text>
+        </g>
+        <g transform="translate(560 250)">
+          <rect class="box" width="370" height="88" rx="12" style="stroke: var(--ink-3)"/>
+          <circle cx="24" cy="30" r="8" class="d-files"/><text x="40" y="35">+</text><circle cx="64" cy="30" r="8" class="d-net"/>
+          <text class="t" x="86" y="35">Read a dataset, then a big upload</text><text class="s" x="16" y="58">same machine, within 30 seconds</text><text class="m" x="16" y="78">asset-read-then-transfer</text>
+        </g>
+      </svg>
+    </div>
+    <div class="foot"><span class="gpu">from the thermometer</span><span class="net">from the camera</span><span class="decoy">from the fake door</span><span class="files">from the cabinet log</span></div>
+  </div>
+</section>
+
+<!-- PAGE 6: three bins -->
+<section class="page alt">
+  <div class="wrap">
+    <div class="cap"><span class="no">6</span><div><h2>Every finding lands in one of three bins</h2><p>Broken, look closer, or someone did something they should not. The bins never merge, and each finding says what it cannot prove.</p></div></div>
+    <div class="bins">
+      <div class="bin">
+        <svg viewBox="0 0 300 120" aria-hidden="true"><rect x="20" y="30" width="260" height="70" rx="12" fill="var(--panel-2)" stroke="var(--gpu)" stroke-width="2"/><g class="mover"><circle r="6" class="d-gpu"><animateMotion dur="2.4s" repeatCount="indefinite" path="M150 0 L 150 60"/></circle></g><text class="m" x="150" y="80" text-anchor="middle" style="fill: var(--gpu)">thermal</text></svg>
+        <h3>Broken</h3><p>A cooling fault. Fix it fast. Nobody is attacking anything.</p>
+      </div>
+      <div class="bin">
+        <svg viewBox="0 0 300 120" aria-hidden="true"><rect x="20" y="30" width="260" height="70" rx="12" fill="var(--panel-2)" stroke="var(--decoy)" stroke-width="2"/><g class="mover"><circle r="6" class="d-net"><animateMotion dur="2.4s" begin=".4s" repeatCount="indefinite" path="M110 0 L 110 60"/></circle><circle r="6" class="d-gpu"><animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite" path="M190 0 L 190 60"/></circle></g><text class="m" x="150" y="80" text-anchor="middle" style="fill: var(--decoy)">unapproved-compute and 5 more</text></svg>
+        <h3>Look closer</h3><p>Heavy work with no approved job, a steady heartbeat, a refused request. A person decides.</p>
+      </div>
+      <div class="bin">
+        <svg viewBox="0 0 300 120" aria-hidden="true"><rect x="20" y="30" width="260" height="70" rx="12" fill="var(--panel-2)" stroke="var(--bad)" stroke-width="2"/><g class="mover"><circle r="6" class="d-decoy"><animateMotion dur="2.4s" begin=".8s" repeatCount="indefinite" path="M150 0 L 150 60"/></circle></g><text class="m" x="150" y="80" text-anchor="middle" style="fill: var(--bad)">honeypot-contact and 3 more</text></svg>
+        <h3>Should not have happened</h3><p>Touching the decoy, probing ports, a changed model file. Still not proof of who or why.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAGE 7: the two minute story -->
+<section class="page">
+  <div class="wrap">
+    <div class="cap"><span class="no">7</span><div><h2>Two minutes in the lab, as it really ran</h2><p>Watch the playhead. Findings appear only when the sensors earned them. The approved job on the left produces nothing, on purpose.</p></div></div>
+    <div class="scene" aria-label="A timeline from 0 to 120 seconds with a moving playhead and findings appearing in each phase">
+      <svg viewBox="0 0 1100 300" role="img">
+        <g transform="translate(60 40)">
+          <rect x="0" y="0" width="700" height="60" rx="8" fill="var(--panel-2)"/>
+          <rect x="0" y="0" width="87.5" height="60" rx="8" fill="var(--files)" opacity=".18"/><rect x="87.5" y="0" width="87.5" height="60" fill="var(--files)" opacity=".18"/>
+          <rect x="175" y="0" width="87.5" height="60" fill="var(--gpu)" opacity=".25"/><rect x="262.5" y="0" width="87.5" height="60" fill="var(--bad)" opacity=".22"/>
+          <rect x="350" y="0" width="175" height="60" fill="var(--decoy)" opacity=".2"/><rect x="525" y="0" width="87.5" height="60" fill="var(--decoy)" opacity=".3"/><rect x="612.5" y="0" width="87.5" height="60" rx="8" fill="var(--files)" opacity=".18"/>
+          <text class="s" x="8" y="22">quiet</text><text class="s" x="95" y="22">approved job</text><text class="s" x="183" y="22">cooling fault</text><text class="s" x="270" y="22">snooping</text><text class="s" x="358" y="22">heartbeat</text><text class="s" x="533" y="22">misuse</text><text class="s" x="620" y="22">quiet again</text>
+          <text class="m" x="0" y="80">0 s</text><text class="m" x="175" y="80">30 s</text><text class="m" x="350" y="80">60 s</text><text class="m" x="525" y="80">90 s</text><text class="m" x="680" y="80">120 s</text>
+          <g class="sweep"><line x1="0" y1="-8" x2="0" y2="68" stroke="var(--ink)" stroke-width="2"/><circle cy="-8" r="5" fill="var(--ink)"/></g>
+          <!-- findings popping -->
+          <g class="pop at20"><rect x="178" y="110" width="80" height="24" rx="6" fill="var(--panel-2)" stroke="var(--gpu)"/><text class="m" x="186" y="126">thermal</text></g>
+          <g class="pop at34"><rect x="265" y="110" width="88" height="24" rx="6" fill="var(--panel-2)" stroke="var(--bad)"/><text class="m" x="273" y="126">port-spread</text></g>
+          <g class="pop at36"><rect x="265" y="140" width="122" height="24" rx="6" fill="var(--panel-2)" stroke="var(--bad)"/><text class="m" x="273" y="156">honeypot-contact</text></g>
+          <g class="pop at62"><rect x="353" y="110" width="140" height="24" rx="6" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="m" x="361" y="126">periodic-connection</text></g>
+          <g class="pop at78"><rect x="528" y="110" width="140" height="24" rx="6" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="m" x="536" y="126">unapproved-compute</text></g>
+          <g class="pop at82"><rect x="528" y="140" width="122" height="24" rx="6" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="m" x="536" y="156">outbound-volume</text></g>
+          <g class="pop at84"><rect x="528" y="170" width="178" height="24" rx="6" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="m" x="536" y="186">compute-network-overlap</text></g>
+          <g class="pop at86"><rect x="528" y="200" width="150" height="24" rx="6" fill="var(--panel-2)" stroke="var(--files)"/><text class="m" x="536" y="216">write blocked: EROFS</text></g>
+          <g class="pop at12"><text class="s" x="95" y="126" style="fill: var(--good)">nothing, correctly</text></g>
+        </g>
+        <text class="s" x="790" y="60">What the checker demands:</text>
+        <text class="s" x="790" y="84">no finding during quiet or approved work,</text>
+        <text class="s" x="790" y="104">seven findings by the end,</text>
+        <text class="s" x="790" y="124">the kernel refusing the write,</text>
+        <text class="s" x="790" y="144">normal calls resuming afterwards,</text>
+        <text class="s" x="790" y="164">and every finding traceable to raw lines.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- PAGE 8: the cabinet -->
+<section class="page alt">
+  <div class="wrap">
+    <div class="cap"><span class="no">8</span><div><h2>The file cabinet, and four ways it stays honest</h2><p>Datasets, trained models, settings, and evidence. The goal is not to hide them. It is to make a quiet change impossible to miss.</p></div></div>
+    <div class="scene" aria-label="A cabinet with four drawers, a guest list, fingerprint tags, a glued shelf blocking the worker, and a sealed envelope">
+      <svg viewBox="0 0 1100 380" role="img">
+        <!-- cabinet -->
+        <rect x="60" y="40" width="300" height="300" rx="14" fill="var(--panel-2)" stroke="var(--rule-2)" stroke-width="2"/>
+        <g>
+          <rect x="80" y="60" width="260" height="60" rx="8" fill="var(--panel)" stroke="var(--files)"/><text class="t" x="96" y="86">datasets</text><text class="m" x="96" y="106">telemetry-sample.csv</text><rect x="250" y="76" width="76" height="22" rx="5" fill="var(--panel-2)" stroke="var(--files)"/><text class="m" x="258" y="91" style="fill: var(--files)">46eda…</text>
+          <rect x="80" y="130" width="260" height="60" rx="8" fill="var(--panel)" stroke="var(--files)"/><text class="t" x="96" y="156">models</text><text class="m" x="96" y="176">isolation-forest-reference</text><rect x="250" y="146" width="76" height="22" rx="5" fill="var(--panel-2)" stroke="var(--files)"/><text class="m" x="258" y="161" style="fill: var(--files)">b1c90…</text>
+          <rect x="80" y="200" width="260" height="60" rx="8" fill="var(--panel)" stroke="var(--files)"/><text class="t" x="96" y="226">settings</text><text class="m" x="96" y="246">detector-thresholds.json</text><rect x="250" y="216" width="76" height="22" rx="5" fill="var(--panel-2)" stroke="var(--files)"/><text class="m" x="258" y="231" style="fill: var(--files)">7f3a2…</text>
+          <rect x="80" y="270" width="260" height="60" rx="8" fill="var(--panel)" stroke="var(--files)"/><text class="t" x="96" y="296">evidence</text><text class="m" x="96" y="316">sample-export.json</text><rect x="250" y="286" width="76" height="22" rx="5" fill="var(--panel-2)" stroke="var(--files)"/><text class="m" x="258" y="301" style="fill: var(--files)">0d9e4…</text>
+        </g>
+        <text class="s" x="60" y="362">every drawer has a fingerprint tag (SHA-256)</text>
+        <!-- guest list -->
+        <g transform="translate(420 40)">
+          <rect width="250" height="130" rx="12" class="box"/><text class="t" x="16" y="28">Guest list</text>
+          <text class="m" x="16" y="56">training-job   read only</text><text class="m" x="16" y="78">collector      write evidence</text><text class="m" x="16" y="100">publisher      write + approve</text><text class="m" x="16" y="122">anyone else    no</text>
+        </g>
+        <!-- approved list with pointer -->
+        <g transform="translate(420 190)">
+          <rect width="250" height="150" rx="12" class="box"/><text class="t" x="16" y="28">Approved fingerprints</text>
+          <text class="m" x="16" y="54" style="fill: var(--ink-3)">baseline 1   (older)</text>
+          <text class="m" x="16" y="78">baseline 2   current</text>
+          <path d="M160 72 L 215 72" class="flow f-files"/><text class="m" x="16" y="104" style="fill: var(--files)">pointer says: use 2</text>
+          <text class="s" x="16" y="130">both lists are signed; only the</text><text class="s" x="16" y="144">pointer says which one counts</text>
+        </g>
+        <!-- glued shelf -->
+        <g transform="translate(720 40)">
+          <rect width="340" height="130" rx="12" class="box"/><text class="t" x="16" y="28">The worker's view of the cabinet</text>
+          <rect x="16" y="44" width="200" height="60" rx="8" fill="var(--panel)" stroke="var(--rule-2)"/><text class="m" x="28" y="68">/assets  (read-only)</text><text class="m" x="28" y="90" style="fill: var(--good)">read dataset: ok</text>
+          <g class="shake"><rect x="232" y="44" width="92" height="60" rx="8" fill="var(--panel)" stroke="var(--bad)"/><text class="m" x="244" y="68" style="fill: var(--bad)">write?</text><text class="m" x="244" y="90" style="fill: var(--bad)">EROFS</text></g>
+          <text class="s" x="16" y="122">the operating system says no, not a Python check</text>
+        </g>
+        <!-- sealed envelope -->
+        <g transform="translate(720 190)">
+          <rect width="340" height="150" rx="12" class="box"/><text class="t" x="16" y="28">Sealed evidence</text>
+          <path d="M16 50 L 196 50 L 196 130 L 16 130 Z" fill="var(--panel)" stroke="var(--files)"/><path d="M16 50 L 106 100 L 196 50" fill="none" stroke="var(--files)"/>
+          <circle cx="106" cy="100" r="14" fill="var(--files)"/><text class="m" x="106" y="104" text-anchor="middle" style="fill: var(--bg)">✓</text>
+          <text class="s" x="212" y="70">change one number</text><text class="s" x="212" y="88">inside and the seal</text><text class="s" x="212" y="106">no longer matches</text>
+          <text class="m" x="212" y="128" style="fill: var(--ink-3)">HMAC, key on the host only</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- PAGE 9: what it cannot see -->
+<section class="page">
+  <div class="wrap">
+    <div class="cap"><span class="no">9</span><div><h2>Three things no sensor here can see</h2><p>A picture is only honest if it shows the blind spots too.</p></div></div>
+    <div class="bins">
+      <div class="bin">
+        <svg viewBox="0 0 300 130" aria-hidden="true"><rect x="40" y="30" width="220" height="70" rx="10" fill="var(--panel-2)" stroke="var(--net)" stroke-width="2"/><text class="m" x="150" y="58" text-anchor="middle">66,052 bytes</text><rect x="60" y="68" width="180" height="18" rx="4" fill="var(--rule-2)"/><text class="m" x="150" y="81" text-anchor="middle" style="fill: var(--ink-3)">▒▒▒▒▒▒▒▒▒▒▒▒</text></svg>
+        <h3>What was inside</h3><p>The camera sees the size of the envelope, both directions added together, never the letter.</p>
+      </div>
+      <div class="bin">
+        <svg viewBox="0 0 300 130" aria-hidden="true"><rect x="40" y="30" width="100" height="70" rx="10" fill="var(--panel-2)" stroke="var(--gpu)" stroke-width="2"/><text class="m" x="90" y="70" text-anchor="middle">GPU 86%</text><rect x="160" y="30" width="100" height="70" rx="10" fill="var(--panel-2)" stroke="var(--net)" stroke-width="2"/><text class="m" x="210" y="70" text-anchor="middle">66 kB out</text><text class="t" x="150" y="72" text-anchor="middle" style="fill: var(--ink-3)">?</text></svg>
+        <h3>Which program did it</h3><p>The same machine, the same five seconds. Whether one program did both is a question, not a fact.</p>
+      </div>
+      <div class="bin">
+        <svg viewBox="0 0 300 130" aria-hidden="true"><rect x="60" y="30" width="180" height="70" rx="10" fill="var(--panel-2)" stroke="var(--files)" stroke-width="2"/><text class="m" x="150" y="60" text-anchor="middle">"I am training-job"</text><text class="s" x="150" y="84" text-anchor="middle">a name tag, not an ID check</text></svg>
+        <h3>Who a program really is</h3><p>Names on the guest list are labels. Real identity would need a scheduler or login system the lab does not have.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAGE 10: the whole picture -->
+<section class="page alt">
+  <div class="wrap">
+    <div class="cap"><span class="no">10</span><div><h2>The whole picture on one page</h2><p>Signal to sensor to clean batch to rules to a bin, with the cabinet guarded on the side and every finding traceable back to the raw line it came from.</p></div></div>
+    <div class="scene" aria-label="Complete flow from server through sensors, normalizer, rules, bins, with the guarded cabinet and sealed export alongside">
+      <svg viewBox="0 0 1100 300" role="img">
+        <defs>
+          <path id="w1" d="M170 150 L 250 150"/><path id="w2" d="M390 150 L 470 150"/><path id="w3" d="M610 150 L 690 150"/><path id="w4" d="M830 150 L 910 150"/>
+        </defs>
+        <rect class="box" x="40" y="105" width="130" height="90" rx="12" style="stroke: var(--gpu)"/><text class="t" x="56" y="135">Server</text><text class="s" x="56" y="155">signals</text><text class="s" x="56" y="173">every second</text>
+        <rect class="box" x="250" y="90" width="140" height="120" rx="12"/><text class="t" x="266" y="118">Sensors</text><text class="s" x="266" y="140" style="fill: var(--gpu)">thermometer</text><text class="s" x="266" y="158" style="fill: var(--net)">camera</text><text class="s" x="266" y="176" style="fill: var(--decoy)">fake door</text><text class="s" x="266" y="194" style="fill: var(--files)">cabinet log</text>
+        <rect class="box" x="470" y="105" width="140" height="90" rx="12"/><text class="t" x="486" y="135">Normalize</text><text class="s" x="486" y="155">drop old, broken,</text><text class="s" x="486" y="173">duplicate, foreign</text>
+        <rect class="box" x="690" y="105" width="140" height="90" rx="12"/><text class="t" x="706" y="135">Rules</text><text class="s" x="706" y="155">12 questions,</text><text class="s" x="706" y="173">2 of them joins</text>
+        <rect class="box" x="910" y="90" width="150" height="120" rx="12"/><text class="t" x="926" y="118">Bins</text><text class="s" x="926" y="142" style="fill: var(--gpu)">broken</text><text class="s" x="926" y="162" style="fill: var(--decoy)">look closer</text><text class="s" x="926" y="182" style="fill: var(--bad)">should not happen</text>
+        <use href="#w1" class="rail"/><use href="#w2" class="rail"/><use href="#w3" class="rail"/><use href="#w4" class="rail"/>
+        <g class="mover">
+          <circle r="5" class="d-gpu"><animateMotion dur="1.4s" repeatCount="indefinite"><mpath href="#w1"/></animateMotion></circle>
+          <circle r="5" class="d-net"><animateMotion dur="1.4s" begin=".3s" repeatCount="indefinite"><mpath href="#w2"/></animateMotion></circle>
+          <circle r="5" class="d-decoy"><animateMotion dur="1.4s" begin=".6s" repeatCount="indefinite"><mpath href="#w3"/></animateMotion></circle>
+          <circle r="5" class="d-grey"><animateMotion dur="1.4s" begin=".9s" repeatCount="indefinite"><mpath href="#w4"/></animateMotion></circle>
+        </g>
+        <!-- cabinet lane -->
+        <rect x="250" y="236" width="360" height="44" rx="10" fill="var(--panel-2)" stroke="var(--files)" stroke-dasharray="6 4"/><text class="s" x="266" y="263">cabinet: guest list, fingerprints, glued shelf. Its log is the fourth sensor.</text>
+        <path class="rail" d="M320 236 L 320 210" stroke-dasharray="3 4"/>
+        <!-- evidence lane -->
+        <rect x="690" y="236" width="370" height="44" rx="10" fill="var(--panel-2)" stroke="var(--files)" stroke-dasharray="6 4"/><text class="s" x="706" y="263">every finding points back to raw lines; exports are sealed and replayable</text>
+        <path class="rail" d="M760 236 L 760 195" stroke-dasharray="3 4"/>
+      </svg>
+    </div>
+    <div class="foot"><span class="gpu">GPU readings</span><span class="net">network</span><span class="decoy">fake door</span><span class="files">files and evidence</span><span class="bad">should not have happened</span></div>
+  </div>
+</section>
+
+<footer class="back">
+  <div class="wrap">
+    <h2>Keep reading</h2>
+    <ul>
+      <li>Book two, the security story: <a href="security.html">what an intruder tries, and what the data center sees</a></li>
+      <li>The lab, its sensors, and the two minute cycle: <code>docs/09-local-security-lab.md</code></li>
+      <li>What each GPU and network measurement can and cannot show: <code>docs/10-gpu-metrics-and-security.md</code></li>
+      <li>The cabinet in detail, with the limits stated: <code>docs/13-data-security-and-integrity.md</code></li>
+      <li>How the same picture would be built on AWS, proposed and not deployed: <code>docs/12-aws-architecture.md</code></li>
+    </ul>
+    <small>Source: <a href="https://github.com/nsirivolu27/quantum-datacenter-anomaly" rel="noopener">quantum-datacenter-anomaly</a>. GPU readings on these pages are generated by a script; network, decoy, and the kernel's EROFS answer are real results from the last verified run. MIT license.</small>
+  </div>
+</footer>
+
+</body>
+</html>
