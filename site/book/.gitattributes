@@ -1,0 +1,3 @@
+# Preserve PDF cross-reference offsets and image bytes on every platform.
+*.pdf binary
+assets/*.jpg binary
