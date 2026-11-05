@@ -1,0 +1,219 @@
+{
+  "title": "Where Does My Picture Go?",
+  "subtitle": "Maya and Pip explore data centers and keeping data safe",
+  "age": "A read-together book for ages 5–7",
+  "edition": "First edition · November 2026",
+  "pages": [
+    {
+      "id": "cover", "chapter": "A little journey", "title": "Where Does My Picture Go?",
+      "image": "cover", "alt": "Maya holds her whale picture beside Pip. A winding path leads through a cutaway data center to a house.",
+      "text": ["Maya and Pip explore data centers and keeping data safe."],
+      "ask": "A read-together book for ages 5–7.", "kind": "cover"
+    },
+    {
+      "id": "maya", "chapter": "1 · A picture takes a trip", "title": "A whale for Grandpa",
+      "image": "cover", "alt": "Maya has drawn a blue whale below a yellow star. Her tablet shows a digital copy.",
+      "text": ["Maya draws a whale and one bright star.", "With Aunt Rae, she sends a copy to Grandpa.", "“Where does my picture go?” asks Maya."],
+      "ask": "What picture would you like to send?"
+    },
+    {
+      "id": "pip", "chapter": "1 · A picture takes a trip", "title": "Meet Pip!",
+      "image": "network", "alt": "Pip is a smiling teal envelope on a ribbon path, carrying little pieces of a picture.",
+      "text": ["“Let’s imagine the trip,” says Rae.", "Pop! Here is Pip, our pretend guide.", "“Your picture is data,” says Pip. “Data means information a computer can use.”"],
+      "ask": "Pictures, songs, and words can all be data. Can you name one more?"
+    },
+    {
+      "id": "packets", "chapter": "1 · A picture takes a trip", "title": "Little pieces, big trip",
+      "image": "network", "alt": "Small colored pieces travel along connected paths from a tablet toward computers.",
+      "text": ["The picture travels in small pieces called packets.", "They zip along network links.", "At the other end, the pieces fit back together. Hello again, whale!"],
+      "ask": "Count three pretend packets. Help them arrive.", "activity": "packets",
+      "print": "Trace three paths in the picture with your finger. Packets are pieces of data, not paper envelopes."
+    },
+    {
+      "id": "cloud", "chapter": "1 · A picture takes a trip", "title": "The cloud is down here",
+      "image": "cover", "alt": "A real building holds computers and cooling equipment beneath an ordinary sky.",
+      "text": ["“Is my picture in the sky?” asks Maya.", "“No,” says Rae. “Cloud services use real computers.”", "Some live in buildings called data centers. Let’s peek inside!"],
+      "ask": "Point to the building that holds the computers."
+    },
+    {
+      "id": "servers", "chapter": "2 · Inside the busy building", "title": "A room full of helpers",
+      "image": "servers", "alt": "Rae shows Pip rows of server racks with neatly connected cables.",
+      "text": ["Hum, hum, hum.", "Rows of computers work here. Many are called servers.", "Some keep files. Some run apps. Some send the things we ask for."],
+      "ask": "The tall frames are called racks. Can you find one?"
+    },
+    {
+      "id": "gpu", "chapter": "2 · Inside the busy building", "title": "Many little jobs at once",
+      "image": "gpu", "alt": "A large pretend GPU is shown as a grid of tiles making a whale picture.",
+      "text": ["Next door, a computer makes a moving picture.", "Its GPU chip does many small, similar jobs at once.", "“Like a team filling lots of little squares!” says Maya."],
+      "ask": "Say the letters: G, P, U. Let’s light up the squares.", "activity": "gpu",
+      "print": "Point to several squares at the same time with both hands. A GPU works on many similar calculations together."
+    },
+    {
+      "id": "learning", "chapter": "2 · Inside the busy building", "title": "A tool that finds patterns",
+      "image": "gpu", "alt": "Many small tiles form a larger image on a computer chip.",
+      "text": ["GPUs can help AI tools learn patterns from examples.", "An AI tool might help find whales in pictures.", "“It can get things wrong,” says Rae. “People must check.”"],
+      "ask": "Could a cloud in a photo look like a whale?"
+    },
+    {
+      "id": "metrics", "chapter": "2 · Inside the busy building", "title": "How is our computer doing?",
+      "image": "servers", "alt": "Rae carries a tablet as she checks the computers in a server aisle.",
+      "text": ["Rae checks little clues called measurements.", "How busy is the GPU? How warm? How much power is it using?", "Is there room in its working memory?"],
+      "ask": "Explore the four things Rae checks.", "activity": "metrics",
+      "print": "Say these four clues together: busy, heat, power, room. A busy computer may be doing exactly the right job."
+    },
+    {
+      "id": "warm", "chapter": "2 · Inside the busy building", "title": "A warm little clue",
+      "image": "cooling", "alt": "Rae watches airflow around warm computers while Pip looks on.",
+      "text": ["Beep! One computer is warmer than usual.", "“Is someone being bad?” asks Pip.", "“Not necessarily,” says Rae. “Let’s check its work and its cooling.”"],
+      "ask": "When something is different, we look for clues before we decide."
+    },
+    {
+      "id": "cooling", "chapter": "2 · Inside the busy building", "title": "Whoosh goes the cool air",
+      "image": "cooling", "alt": "Blue airflow passes through racks; a separate closed cooling loop carries heat away.",
+      "text": ["Rae finds a fan that needs fixing.", "Fans move air to carry heat away. Some systems use liquid in special pipes.", "The team fixes the fan. Whoosh!"],
+      "ask": "Help the pretend cooling team.", "activity": "cooling",
+      "print": "Follow the blue air with your finger. Then follow the warm air out. Only trained grown-ups fix this equipment."
+    },
+    {
+      "id": "power", "chapter": "2 · Inside the busy building", "title": "Keep the lights on",
+      "image": "servers", "alt": "Orderly racks glow with small lights in a well-lit data center.",
+      "text": ["Computers need electricity.", "Backup batteries can help when power stops. Other power systems help too.", "“We also try to waste less energy,” says Rae. “Our planet matters.”"],
+      "ask": "What else in your home uses electricity?"
+    },
+    {
+      "id": "badges", "chapter": "3 · Keeping the picture safe", "title": "Who may come in?",
+      "image": "gate", "alt": "A staff member checks Rae’s badge at the data center entrance.",
+      "text": ["At the real building, workers check badges and permissions.", "Visitors need help from a guide.", "“Knowing who you are matters,” says Rae. “So does knowing where you may go.”"],
+      "ask": "A badge is one check. It does not open every door."
+    },
+    {
+      "id": "permission", "chapter": "3 · Keeping the picture safe", "title": "Look, but do not change",
+      "image": "gate", "alt": "Different rooms have different doors; access is checked for each job.",
+      "text": ["Files have permissions too.", "Maya lets Grandpa see her picture.", "That does not mean he may change it. People get just the access they need."],
+      "ask": "Grandpa has permission to look. What may he do?", "activity": "permission",
+      "print": "Circle the allowed action: LOOK AT THE PICTURE / CHANGE THE PICTURE. Explain your choice."
+    },
+    {
+      "id": "encryption", "chapter": "3 · Keeping the picture safe", "title": "A special kind of lock",
+      "image": "archive", "alt": "Pip stands beside a protected picture cabinet, a story symbol for protecting data.",
+      "text": ["Encryption changes data so it is hard to read without the right digital key.", "“Like a locked box?” asks Maya.", "“That helps us imagine it,” says Rae."],
+      "ask": "Open and close our pretend picture box.", "activity": "encryption",
+      "print": "Make a box shape with your hands. Real encryption uses math, not a little metal lock."
+    },
+    {
+      "id": "network-doors", "chapter": "3 · Keeping the picture safe", "title": "Paths with rules",
+      "image": "network", "alt": "Separate colored network paths join at a switch on the way to servers.",
+      "text": ["Computers talk along network paths.", "Rules help decide which computers may talk to which.", "One open path does not mean every room is open."],
+      "ask": "Imagine a school: a library pass does not unlock every cupboard."
+    },
+    {
+      "id": "clue", "chapter": "3 · Keeping the picture safe", "title": "Knock, knock, knock",
+      "image": "servers", "alt": "Rae and Pip pause beside the connected servers to investigate a new signal.",
+      "text": ["A computer sends many messages.", "Beep! A tool spots a different pattern.", "“A clue!” says Rae. “It might be a busy job, a mistake, or something unsafe.”"],
+      "ask": "What should Rae do first?", "activity": "clue",
+      "print": "Choose: CHECK THE CLUES / DECIDE IT IS BAD AT ONCE. Why?"
+    },
+    {
+      "id": "check", "chapter": "3 · Keeping the picture safe", "title": "Look a little closer",
+      "image": "servers", "alt": "Rae looks at her tablet beside the server racks.",
+      "text": ["Rae checks the job list and the computer’s notes, called logs.", "This time, an approved job is sending the messages.", "“Busy can be okay,” says Pip."],
+      "ask": "Tell someone why a beep does not always mean danger."
+    },
+    {
+      "id": "wrong-door", "chapter": "3 · Keeping the picture safe", "title": "This door stays closed",
+      "image": "gate", "alt": "A closed door marks a room that needs its own permission.",
+      "text": ["Next, a different request asks to open a private file.", "It has no permission. The system says no.", "The security team checks what happened and keeps a record."],
+      "ask": "People and tools work together. No one lock does every job."
+    },
+    {
+      "id": "change", "chapter": "3 · Keeping the picture safe", "title": "Where did the star go?",
+      "image": "archive", "alt": "Two whale pictures sit side by side. One has a star; the other has a circle.",
+      "text": ["Now Pip spots a problem.", "In one saved copy, Maya’s star has become a circle!", "Was it a mistake? An unwanted change? The team needs more clues."],
+      "ask": "Find the part of the picture that changed.", "activity": "change",
+      "print": "Point to the star and the circle. A change tells us to check; it does not tell us who made it."
+    },
+    {
+      "id": "integrity", "chapter": "3 · Keeping the picture safe", "title": "Does it still match?",
+      "image": "archive", "alt": "Rae compares the changed picture with a protected reference copy.",
+      "text": ["Computers can check files against a trusted record.", "A check can show that something changed.", "“It cannot tell us the whole story,” says Rae. “We still investigate.”"],
+      "ask": "Keeping data from unwanted changes is called integrity. That is a big word for an important job!"
+    },
+    {
+      "id": "backup", "chapter": "3 · Keeping the picture safe", "title": "A copy kept safe",
+      "image": "archive", "alt": "A separate cabinet holds another copy of Maya’s whale-and-star picture.",
+      "text": ["Good news! The team kept a backup.", "A backup is an extra copy stored safely, apart from the first.", "They check it before using it."],
+      "ask": "Find the extra copy in the other cabinet."
+    },
+    {
+      "id": "restore", "chapter": "3 · Keeping the picture safe", "title": "Hello again, little star",
+      "image": "archive", "alt": "The original star remains visible in the safely kept backup picture.",
+      "text": ["The team brings back the checked copy.", "There is Maya’s star!", "They also look for what caused the change, so they can help stop it happening again."],
+      "ask": "Bring back the picture from our pretend backup.", "activity": "restore",
+      "print": "Draw a star in the air. Restoring a copy helps us recover; finding the cause is another job."
+    },
+    {
+      "id": "home", "chapter": "4 · Home again", "title": "A whale-sized smile",
+      "image": "home", "alt": "Maya visits Grandpa. They smile at her whale picture on his tablet, while Pip waves goodbye.",
+      "text": ["Later, Maya visits Grandpa. Her picture is on his screen.", "“It took a whole team!” says Maya.", "Grandpa gives her a whale-sized hug. Pip waves. What a trip!"],
+      "ask": "The end. What helped the picture get there safely?"
+    },
+    {
+      "id": "you", "chapter": "Your turn", "title": "You can ask for help",
+      "image": "home", "alt": "Maya and a trusted grown-up sit together with a tablet.",
+      "text": ["If a message feels odd, pause and ask a trusted grown-up.", "Ask before sharing a photo or private information.", "If you clicked by mistake, tell someone. You can get help."],
+      "ask": "A pop-up asks for your home address. What do you do?", "activity": "help",
+      "print": "Name a trusted grown-up you could ask. You never have to solve a scary online problem alone."
+    },
+    {
+      "id": "words", "chapter": "Little word garden", "title": "New words to grow",
+      "kind": "glossary", "image": "network", "alt": "Pip travels with little pieces of data.",
+      "text": ["Say a word. Point to something in the story that matches it."],
+      "entries": [["Data", "Information a computer can use."], ["Server", "A computer that does jobs for other computers."], ["Network", "Connections that let computers share data."], ["GPU", "A chip that does many similar jobs at once."], ["Permission", "What someone is allowed to do."], ["Backup", "An extra copy kept safely."], ["Integrity", "Keeping data from unwanted changes."], ["Security", "Ways to help protect people, computers, and data."]]
+    },
+    {
+      "id": "path-game", "chapter": "Play together · 1", "title": "Tell the picture’s journey",
+      "image": "network", "alt": "The picture travels from a tablet through connected computers.",
+      "text": ["Put these story stops in order.", "Start with Maya. Finish with Grandpa.", "Tell the story in your own words."],
+      "ask": "Tap each stop in the order it belongs.", "activity": "journey",
+      "print": "Write 1, 2, 3 beside these stops: GRANDPA’S SCREEN __ / MAYA’S TABLET __ / DATA CENTER __. Draw a line to join them."
+    },
+    {
+      "id": "permission-game", "chapter": "Play together · 2", "title": "Which job is allowed?",
+      "image": "gate", "alt": "A worker checks permission before someone enters a room.",
+      "text": ["Pretend you care for the picture.", "Grandpa may look. Rae may check the backup.", "Someone else asks to erase it. They have no permission."],
+      "ask": "Which request should stay closed?", "activity": "doors",
+      "print": "Circle the request to refuse: GRANDPA LOOKS / RAE CHECKS / SOMEONE ERASES WITHOUT PERMISSION."
+    },
+    {
+      "id": "draw", "chapter": "Play together · 3", "title": "Make your own safe journey",
+      "kind": "drawing", "image": "cover", "alt": "Maya’s picture begins its journey.",
+      "text": ["On paper, draw a picture you would like to send.", "Add a path, a computer, a cooling fan, and a safe backup.", "Tell a grown-up what each part does."],
+      "ask": "What will your picture be?", "print": "Use the space below. Your picture does not need your name, address, or any private information."
+    },
+    {
+      "id": "grownups", "chapter": "For grown-ups", "title": "Read, wonder, check",
+      "kind": "guide", "image": "home", "alt": "A child and her grandfather read together.",
+      "text": ["Read a few pages at a time. Invite pointing, sounds, and questions. Ages 5–7 do not need to memorize the technical words. The printable activities work without a device.", "Pip, the journey, and its problems are fictional. Envelopes, cabinets, locks, and colored tiles are visual metaphors. Packets are data; GPUs do calculations. Not every photo transfer needs a GPU or visits the same kinds of systems.", "The activities are pretend examples, not live monitoring, encryption, or access control. They run in the browser and do not ask for personal information. Read-aloud uses a device/browser voice if available; voice processing depends on that provider.", "Busy GPUs and unusual traffic do not prove an attack. A changed cryptographic hash indicates a mismatch with a trusted reference; it does not identify the person, intent, or correctness of the original file. Backups must be protected and tested.", "Children can pause and ask for help. Adults handle accounts, updates, strong credentials, and extra sign-in checks. Privacy, permission, integrity, and recovery all matter. No single tool guarantees safety."]
+    },
+    {
+      "id": "sources-center", "chapter": "For grown-ups · Sources", "title": "The real ideas: data centers",
+      "kind": "sources", "text": ["The story simplifies these primary references. Read together with an adult. Sources checked November 5, 2026."],
+      "sources": [
+        {"title": "AWS · What is a data center?", "url": "https://aws.amazon.com/what-is/data-center/", "note": "Servers, storage, networks, cooling, power, and cloud infrastructure; pages 5–6 and 10–12."},
+        {"title": "NVIDIA · CPU and GPU", "url": "https://blogs.nvidia.com/blog/whats-the-difference-between-a-cpu-and-a-gpu/", "note": "Many similar calculations in parallel; pages 7–8. The colored tiles are a teaching metaphor."},
+        {"title": "NVIDIA · DCGM Exporter", "url": "https://docs.nvidia.com/datacenter/cloud-native/gpu-telemetry/latest/dcgm-exporter.html", "note": "GPU monitoring and measurements; page 9. Our activities do not read real GPU measurements."},
+        {"title": "AWS · Data center controls", "url": "https://aws.amazon.com/trust-center/data-center/our-controls/", "note": "Physical access, permissions, logging, and layers of protection; pages 13–14 and 19."}
+      ]
+    },
+    {
+      "id": "sources-security", "chapter": "For grown-ups · Sources", "title": "The real ideas: keeping data safe",
+      "kind": "sources", "text": ["Use these references for the details behind our simple explanations. The story describes general ideas, not a deployed cloud system."],
+      "sources": [
+        {"title": "NIST · Encryption", "url": "https://csrc.nist.gov/glossary/term/encryption", "note": "Transforming readable data using cryptography; page 15. A screen cover is not real encryption."},
+        {"title": "NIST · Cryptographic hash function", "url": "https://csrc.nist.gov/glossary/term/cryptographic_hash_function", "note": "Hash functions and change detection; pages 20–21. Reference values also need protection."},
+        {"title": "NCSC · Backing up your data", "url": "https://www.ncsc.gov.uk/collection/top-tips-for-staying-secure-online/always-back-up-your-most-important-data", "note": "Separate safe copies and restoring files; pages 22–23."},
+        {"title": "FTC · Recognize and avoid phishing scams", "url": "https://consumer.ftc.gov/articles/how-recognize-avoid-phishing-scams", "note": "Unexpected requests and checking before responding; page 25. An adult should help young children."}
+      ]
+    }
+  ]
+}
