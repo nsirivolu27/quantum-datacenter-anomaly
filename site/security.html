@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Book two: the moves an intruder makes inside a data center, the sensor that notices each one, and the layer that stops it.">
+<meta name="description" content="Book two: the moves an intruder makes inside a data center, the sensor that notices each one, and the layer that stops it. Run each move yourself.">
 <title>Sentinel Lab Security</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -129,6 +129,50 @@ a { color: var(--net); }
 @media (max-width: 760px) { .bins { grid-template-columns: 1fr; } }
 
 /* back cover */
+/* interactive controls under scenes */
+.sim { margin-top: 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+.sim h3 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
+.sim .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+@media (max-width: 760px) { .sim .row { grid-template-columns: 1fr; } }
+.sim label { display: grid; gap: 4px; font-size: 14px; color: var(--ink-2); }
+.sim label .v { font-family: var(--mono); color: var(--ink); }
+.sim input[type=range] { width: 100%; accent-color: var(--gpu); }
+.sim select, .sim textarea { font: inherit; background: var(--panel-2); color: var(--ink); border: 1px solid var(--rule-2); border-radius: 8px; padding: 6px 8px; width: 100%; }
+.sim textarea { font-family: var(--mono); font-size: 13px; min-height: 110px; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: inherit; font-weight: 700; font-size: 14px; padding: 8px 13px; border-radius: 9px; border: 1px solid var(--rule-2); background: var(--panel-2); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { border-color: var(--ink-3); }
+.btn i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.quiet { font-weight: 400; color: var(--ink-2); }
+.check { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink-2); }
+.check input { width: 17px; height: 17px; accent-color: var(--files); }
+.fl { display: grid; gap: 8px; }
+.fx { border: 1px solid var(--rule-2); border-left-width: 5px; border-radius: 10px; padding: 9px 12px; background: var(--panel-2); display: grid; gap: 2px; }
+.fx.op { border-left-color: var(--gpu); } .fx.inv { border-left-color: var(--decoy); } .fx.sec { border-left-color: var(--bad); } .fx.none { border-left-color: var(--files); color: var(--ink-2); font-size: 14px; }
+.fx.ok { border-left-color: var(--files); } .fx.bad { border-left-color: var(--bad); }
+.fx b { font-family: var(--display); font-weight: 600; font-size: 16px; }
+.fx .r { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.fx .x { font-size: 14px; color: var(--ink-2); }
+.fx .n { font-size: 13px; color: var(--ink-3); border-left: 2px solid var(--rule-2); padding-left: 8px; }
+.rulecard .ring { opacity: .12; transition: opacity .3s; }
+.rulecard.lit .ring { opacity: 1; }
+.rulecard.lit .box { fill: var(--panel); }
+table.log { width: 100%; border-collapse: collapse; font-size: 13px; font-family: var(--mono); }
+table.log td, table.log th { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); }
+.logwrap { max-height: 220px; overflow: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel-2); }
+.kv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.kv div { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--ink-3); }
+.kv div b { display: block; font-family: var(--display); font-size: 22px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) { .kv { grid-template-columns: 1fr 1fr; } }
+.playbar { display: flex; align-items: center; gap: 10px; }
+.playbar input[type=range] { flex: 1; accent-color: var(--net); }
+.fp { font-family: var(--mono); font-size: 12px; word-break: break-all; padding: 8px 10px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--rule); }
+.fp.ok { border-color: var(--files); } .fp.bad { border-color: var(--bad); }
+.status { font-size: 14px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--rule-2); background: var(--panel-2); color: var(--ink-2); }
+.status.ok { border-color: var(--files); color: var(--good); } .status.bad { border-color: var(--bad); color: var(--bad); }
+
 .back { padding-block: 48px 64px; color: var(--ink-2); }
 .back .wrap { display: grid; gap: 16px; }
 .back h2 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0; }
@@ -204,6 +248,18 @@ a { color: var(--net); }
         <text class="s" x="700" y="300">Two independent witnesses. Neither proves anything was taken; both say someone was looking.</text>
       </svg>
     </div>
+    <div class="sim">
+      <h3>Run the recon yourself</h3>
+      <div class="row">
+        <div style="display:grid; gap:10px">
+          <label>Ports to knock on <span class="v" id="m1nV">7</span><input id="m1n" type="range" min="1" max="7" value="7"></label>
+          <label>Seconds between knocks <span class="v" id="m1gV">0.2 s</span><input id="m1g" type="range" min="1" max="100" value="2"></label>
+          <label class="check"><input type="checkbox" id="m1login" checked> then submit a fake login on the decoy's web page</label>
+          <p style="font-size:13px; color: var(--ink-3)">port-spread needs 6 distinct ports on one machine inside a 20 second window. The login is itself a connection to one more port, so try 4 knocks plus the login, or spread 7 knocks 10 seconds apart.</p>
+        </div>
+        <div class="fl" id="m1f"></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -228,6 +284,19 @@ a { color: var(--net); }
         </g>
         <g transform="translate(40 280)"><text class="m" style="fill: var(--decoy)">periodic-connection</text><text class="s" x="180" y="0">A candidate, not confirmed command and control. Regular traffic can be benign, so a person checks what the receiver is.</text></g>
       </svg>
+    </div>
+    <div class="sim">
+      <h3>Tune the heartbeat</h3>
+      <div class="row">
+        <div style="display:grid; gap:10px">
+          <label>Connections <span class="v" id="m2cV">6</span><input id="m2c" type="range" min="2" max="10" value="6"></label>
+          <label>Seconds between them <span class="v" id="m2iV">3 s</span><input id="m2i" type="range" min="1" max="40" value="3"></label>
+          <label>Irregularity <span class="v" id="m2jV">2%</span><input id="m2j" type="range" min="0" max="100" value="2"></label>
+          <label>Destination <select id="m2d"><option value="receiver">test receiver, not approved</option><option value="api">approved API</option></select></label>
+          <div class="kv"><div>mean gap<b id="m2mean">3.0 s</b></div><div>variation (CV)<b id="m2cv">0.02</b></div><div>limit<b>0.25</b></div><div>needs<b>6+</b></div></div>
+        </div>
+        <div style="display:grid; gap:10px"><div class="tl" style="background:var(--panel-2);border:1px solid var(--rule);border-radius:10px;padding:10px"><svg viewBox="0 0 520 70" id="m2svg" style="width:100%;height:auto;display:block"></svg></div><div class="fl" id="m2f"></div></div>
+      </div>
     </div>
   </div>
 </section>
@@ -264,6 +333,18 @@ a { color: var(--net); }
         </g>
         <text class="s" x="40" y="320">If the intruder had first read a dataset through the cabinet, a second join would note the read followed by the upload within 30 seconds.</text>
       </svg>
+    </div>
+    <div class="sim">
+      <h3>Try to make the join fire, then try to break it</h3>
+      <div class="row">
+        <div style="display:grid; gap:10px">
+          <label>Unapproved GPU spike at <span class="v" id="m3gV">40 s</span><input id="m3g" type="range" min="0" max="120" value="40"></label>
+          <label>Transfer at <span class="v" id="m3tV">43 s</span><input id="m3t" type="range" min="0" max="120" value="43"></label>
+          <label>GPU node <select id="m3n"><option value="compute-01">compute-01, the worker</option><option value="compute-02">compute-02, another machine</option></select></label>
+          <label>Transfer <select id="m3b"><option value="66024">66,024 bytes to the receiver</option><option value="12000">12,000 bytes to the receiver</option><option value="api">66,024 bytes to the approved API</option></select></label>
+        </div>
+        <div style="display:grid; gap:10px"><div class="tl" style="background:var(--panel-2);border:1px solid var(--rule);border-radius:10px;padding:10px"><svg viewBox="0 0 520 110" id="m3svg" style="width:100%;height:auto;display:block"></svg></div><div class="fl" id="m3f"></div></div>
+      </div>
     </div>
   </div>
 </section>
@@ -311,6 +392,36 @@ a { color: var(--net); }
         <text class="s" x="250" y="330">And the approved list itself? Every version is signed, and a signed pointer names the current one. Copying an old list back in fails at the pointer.</text>
       </svg>
     </div>
+    <div class="sim">
+      <h3>Layer 1: ask the guest list</h3>
+      <div class="row">
+        <div style="display:grid; gap:10px">
+          <label>Who is asking <select id="m4actor"><option>training-job</option><option>collector</option><option>publisher</option><option>auditor</option><option>unknown-process</option></select></label>
+          <label>What they want <select id="m4op"><option value="read">read</option><option value="write">write</option><option value="approve">approve a new baseline</option></select></label>
+          <label>Which file <select id="m4asset"><option value="dataset:telemetry-sample">dataset: telemetry-sample.csv</option><option value="model:isolation-forest-reference">model: isolation-forest-reference</option><option value="config:detector-thresholds">config: detector-thresholds</option><option value="evidence:sample-export">evidence: sample-export</option><option value="../../lab/settings.json">../../lab/settings.json, outside the cabinet</option></select></label>
+          <button class="btn primary" id="m4ask">Ask the guarded store</button>
+          <div class="status" id="m4dec">The decision is made before any file is touched.</div>
+        </div>
+        <div><div style="font-size:13px;color:var(--ink-3);margin-bottom:6px">Audit log</div><div class="logwrap"><table class="log"><thead><tr><th>actor</th><th>op</th><th>asset</th><th>decision</th><th>outcome</th></tr></thead><tbody id="m4log"></tbody></table></div></div>
+      </div>
+      <h3>Layer 3: fingerprints and the approved list</h3>
+      <div class="row">
+        <div style="display:grid; gap:8px">
+          <label>Contents of the model file (edit anything)<textarea id="m4file">{"artifact": "isolation-forest-reference",
+ "training_seed": 41, "window_samples": 10,
+ "threshold": 0.585328}</textarea></label>
+          <div style="font-size:13px;color:var(--ink-3)">current fingerprint</div><div class="fp" id="m4now">…</div>
+          <div style="font-size:13px;color:var(--ink-3)">approved fingerprint, baseline <span class="mono" id="m4ver">1</span></div><div class="fp" id="m4app">…</div>
+          <div class="status" id="m4st">…</div>
+          <div class="btns"><button class="btn" id="m4approve">Approve as publisher</button><button class="btn quiet" id="m4approveBad">Try to approve as training-job</button><button class="btn quiet" id="m4restore">Restore original</button></div>
+        </div>
+        <div style="display:grid; gap:8px">
+          <label>What is sitting on disk as the current manifest <select id="m4swap"><option value="current">the real current manifest</option><option value="old">baseline 1, copied back over it</option><option value="edited">the current manifest, edited without the key</option><option value="missing">the pointer, deleted</option></select></label>
+          <div class="status" id="m4swapst">verification: pointer tag ok, manifest digest matches, manifest tag ok</div>
+          <p style="font-size:13px;color:var(--ink-3)">Layer 2 cannot be simulated in a web page: it is the kernel refusing a write to a read-only mount. In the lab the worker recorded it as <span class="mono">EROFS</span>.</p>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -343,6 +454,26 @@ a { color: var(--net); }
           <text class="s" x="16" y="170" style="fill: var(--ink-3)">A cloud version would append to</text><text class="s" x="16" y="188" style="fill: var(--ink-3)">locked object storage with a</text><text class="s" x="16" y="206" style="fill: var(--ink-3)">role that cannot delete.</text>
         </g>
       </svg>
+    </div>
+    <div class="sim">
+      <h3>Seal, tamper, verify, replay</h3>
+      <div class="row">
+        <div style="display:grid; gap:8px">
+          <label>Export<textarea id="m5x" style="min-height:160px">{"control": {"run_id": "run-42"},
+ "findings": [{"rule": "thermal"}],
+ "evidence": [
+  {"source": "gpu-simulator", "raw": {"ts": 30, "gpu_temp_c": 92.1, "gpu_util_percent": 36, "job_approved": false, "node_id": "compute-01"}},
+  {"source": "zeek", "raw": {"ts": 95, "id.orig_h": "172.20.0.6", "id.resp_h": "172.20.0.4", "id.resp_p": 8080, "orig_bytes": 66024, "uid": "C1"}}
+ ]}</textarea></label>
+          <div class="btns"><button class="btn primary" id="m5seal">Seal</button><button class="btn" id="m5verify">Verify</button><button class="btn quiet" id="m5tamper">Tamper: 92.1 becomes 70.0</button><button class="btn quiet" id="m5key">Switch to a different key</button></div>
+          <div class="status" id="m5st">Not sealed yet. A key was generated in this browser and never leaves it.</div>
+        </div>
+        <div style="display:grid; gap:8px">
+          <button class="btn" id="m5replay">Replay from the raw records</button>
+          <div class="fl" id="m5f"></div>
+          <p style="font-size:13px;color:var(--ink-3)">The saved findings list is ignored. Only raw records count, so the fabricated or edited parts fall away.</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -410,6 +541,17 @@ a { color: var(--net); }
         <text class="s" x="40" y="300">A system that acts on its own needs certainty the sensors cannot give. Until it can tell a backup job from an exfiltration, it asks.</text>
       </svg>
     </div>
+    <div class="sim">
+      <h3>You are the person. Which bin?</h3>
+      <div class="row">
+        <div class="fl" id="m7card"></div>
+        <div style="display:grid; gap:10px">
+          <div class="btns"><button class="btn" data-bin="op"><i style="background:var(--gpu)"></i>Broken</button><button class="btn" data-bin="inv"><i style="background:var(--decoy)"></i>Look closer</button><button class="btn" data-bin="sec"><i style="background:var(--bad)"></i>Should not have happened</button><button class="btn" data-bin="auto"><i style="background:var(--grey)"></i>Auto-quarantine</button></div>
+          <div class="status" id="m7fb">Read the finding, then choose.</div>
+          <div class="kv"><div>sorted<b id="m7n">0</b></div><div>right<b id="m7r">0</b></div></div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -446,6 +588,169 @@ a { color: var(--net); }
     <small>Source: <a href="https://github.com/nsirivolu27/quantum-datacenter-anomaly" rel="noopener">quantum-datacenter-anomaly</a>. All attacker moves are scripted inside an isolated Docker network. MIT license.</small>
   </div>
 </footer>
+<script>
+(function () {
+  var CFG = { thermal: 85, unapproved: 70, portThreshold: 6, beaconMin: 6, beaconMaxCv: 0.25, transferBytes: 50000, corrSeconds: 5, volumeWindow: 60, volumeBytes: 150000, worker: "compute-01" };
+  var INV = { worker: "172.20.0.6", api: "172.20.0.2", canary: "172.20.0.3", receiver: "172.20.0.4" };
+  var PORTS = [21, 22, 23, 80, 443, 445, 3389];
+  var NOT = { thermal: "Not proof of an attack.", "unapproved-compute": "The approved flag is simulated; check attribution.", "honeypot-contact": "A touch, not a successful intrusion.", "port-spread": "Attempts, not access.", "periodic-connection": "Regular traffic can be benign. A candidate, not confirmed command and control.", "outbound-volume": "Bytes count both directions. Not confirmed exfiltration.", "compute-network-overlap": "Joined on time and node only. Not proof the GPU process sent the data." };
+  function F(rule, cat, title, x, recs) { return { rule: rule, cat: cat, title: title, x: x, not: NOT[rule], count: recs.length, first: Math.min.apply(null, recs.map(function (r) { return r.ts; })) }; }
+  function mean(a) { return a.reduce(function (s, v) { return s + v; }, 0) / a.length; }
+  function pstdev(a) { var m = mean(a); return Math.sqrt(mean(a.map(function (v) { return (v - m) * (v - m); }))); }
+  function detect(gpu, flows, hits) {
+    var out = [], approved = {}; approved[INV.api] = 1; approved[INV.canary] = 1;
+    var hot = gpu.filter(function (g) { return g.temp >= CFG.thermal; });
+    if (hot.length) out.push(F("thermal", "op", "Thermal anomaly", "Temperature reached " + Math.max.apply(null, hot.map(function (g) { return g.temp; })).toFixed(1) + " °C.", hot));
+    var un = gpu.filter(function (g) { return g.util >= CFG.unapproved && !g.approved; });
+    if (un.length) out.push(F("unapproved-compute", "inv", "Compute activity without an approved job", "Utilization above 70% with no approved job.", un));
+    if (hits.length) out.push(F("honeypot-contact", "sec", "Internal decoy accessed", "The decoy recorded " + hits.length + " interaction(s) from the worker.", hits));
+    for (var i = 0; i < flows.length; i++) { var f = flows[i]; var w = flows.slice(0, i + 1).filter(function (o) { return o.dst === f.dst && o.ts >= f.ts - 20; }); var ports = {}; w.forEach(function (o) { ports[o.port] = 1; }); if (Object.keys(ports).length >= CFG.portThreshold) { out.push(F("port-spread", "sec", "Multiple destination ports probed", Object.keys(ports).length + " distinct ports on one machine within 20 seconds.", w)); break; } }
+    var byDst = {}; flows.forEach(function (f) { if (!approved[f.dst]) (byDst[f.dst] = byDst[f.dst] || []).push(f); });
+    Object.keys(byDst).forEach(function (dst) { var g = byDst[dst]; for (var e = 0; e < g.length; e++) { var w2 = g.slice(0, e + 1).filter(function (o) { return o.ts >= g[e].ts - CFG.volumeWindow; }); var total = w2.reduce(function (s, o) { return s + o.bytes; }, 0); if (total >= CFG.volumeBytes) { out.push(F("outbound-volume", "inv", "Sustained transfer volume to an unapproved peer", total.toLocaleString() + " combined bytes within 60 s.", w2)); break; } } });
+    var groups = {}; flows.forEach(function (f) { if (!approved[f.dst]) (groups[f.dst + ":" + f.port] = groups[f.dst + ":" + f.port] || []).push(f); });
+    Object.keys(groups).forEach(function (k) { var g = groups[k]; for (var end = CFG.beaconMin; end <= g.length; end++) { var w3 = g.slice(Math.max(0, end - 10), end); var iv = []; for (var j = 1; j < w3.length; j++) iv.push(w3[j].ts - w3[j - 1].ts); if (Math.min.apply(null, iv) <= 0 || mean(iv) > 30) continue; var cv = pstdev(iv) / mean(iv); if (cv <= CFG.beaconMaxCv) { out.push(F("periodic-connection", "inv", "Beacon-like connection pattern", w3.length + " connections; mean spacing " + mean(iv).toFixed(1) + " s, variation " + cv.toFixed(2) + ".", w3)); break; } } });
+    var gg = gpu.filter(function (x) { return x.util >= CFG.unapproved && !x.approved && x.node === CFG.worker; }), m = [];
+    flows.forEach(function (f) { if (f.src !== INV.worker || approved[f.dst] || f.bytes < CFG.transferBytes) return; if (gg.some(function (x) { return Math.abs(x.ts - f.ts) <= CFG.corrSeconds; })) m.push(f); });
+    if (m.length) out.push(F("compute-network-overlap", "inv", "Unapproved compute overlaps an unusual transfer", "Unapproved GPU activity within 5 s of a connection carrying at least 50,000 combined bytes to an unapproved peer.", m));
+    return out;
+  }
+  function render(el, list, empty) {
+    if (!list.length) { el.innerHTML = '<div class="fx none">' + empty + '</div>'; return; }
+    el.innerHTML = list.map(function (f) { return '<div class="fx ' + f.cat + '"><b></b><span class="r"></span><span class="x"></span><span class="n"></span></div>'; }).join("");
+    Array.prototype.forEach.call(el.children, function (n, i) { n.querySelector("b").textContent = list[i].title; n.querySelector(".r").textContent = list[i].rule + " · " + list[i].count + " record(s)"; n.querySelector(".x").textContent = list[i].x; n.querySelector(".n").textContent = list[i].not || ""; });
+  }
+  function $(id) { return document.getElementById(id); }
+
+  // move 1
+  function paint1() {
+    var n = +$("m1n").value, gap = +$("m1g").value / 10; $("m1nV").textContent = n; $("m1gV").textContent = gap.toFixed(1) + " s";
+    var flows = [], hits = [];
+    for (var i = 0; i < n; i++) flows.push({ ts: i * gap, src: INV.worker, dst: INV.canary, port: PORTS[i], bytes: 0 });
+    if ($("m1login").checked) { flows.push({ ts: n * gap, src: INV.worker, dst: INV.canary, port: 8080, bytes: 390 }); hits.push({ ts: n * gap }); }
+    render($("m1f"), detect([], flows, hits), "No finding. " + (n < 6 ? "Fewer than 6 distinct ports." : "The knocks are spread beyond the 20 second window.") + ($("m1login").checked ? "" : " No login, so the decoy saw nothing."));
+  }
+  ["m1n", "m1g", "m1login"].forEach(function (id) { $(id).addEventListener("input", paint1); $(id).addEventListener("change", paint1); });
+  paint1();
+
+  // move 2
+  function rnd(seed) { var s = seed; return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+  function paint2() {
+    var c = +$("m2c").value, iv = +$("m2i").value, j = +$("m2j").value / 100, R = rnd(5);
+    $("m2cV").textContent = c; $("m2iV").textContent = iv + " s"; $("m2jV").textContent = Math.round(j * 100) + "%";
+    var t = 0, flows = [], dst = $("m2d").value === "api" ? INV.api : INV.receiver;
+    for (var i = 0; i < c; i++) { flows.push({ ts: +t.toFixed(2), src: INV.worker, dst: dst, port: 8080, bytes: 141 }); t += iv * (1 + (R() * 2 - 1) * j); }
+    var gaps = []; for (var k = 1; k < flows.length; k++) gaps.push(flows[k].ts - flows[k - 1].ts);
+    var m = gaps.length ? mean(gaps) : 0, cv = m ? pstdev(gaps) / m : 0;
+    $("m2mean").textContent = m.toFixed(1) + " s"; $("m2cv").textContent = cv.toFixed(2);
+    var span = flows[flows.length - 1].ts || 1, out = '<line x1="10" y1="35" x2="510" y2="35" stroke="var(--rule-2)" stroke-width="2"/>';
+    flows.forEach(function (f) { out += '<rect x="' + (10 + f.ts / span * 496) + '" y="17" width="4" height="36" rx="2" fill="' + (dst === INV.api ? "var(--grey)" : "var(--net)") + '"/>'; });
+    out += '<text x="10" y="66" style="font-family:var(--mono);font-size:11px;fill:var(--ink-3)">0 s</text><text x="470" y="66" style="font-family:var(--mono);font-size:11px;fill:var(--ink-3)">' + span.toFixed(0) + ' s</text>';
+    $("m2svg").innerHTML = out;
+    var why = c < 6 ? "fewer than 6 connections" : m > 30 ? "mean spacing over 30 s" : cv > 0.25 ? "variation " + cv.toFixed(2) + " is above 0.25" : dst === INV.api ? "destination is approved" : "";
+    render($("m2f"), detect([], flows, []), "No finding: " + why + ".");
+  }
+  ["m2c", "m2i", "m2j", "m2d"].forEach(function (id) { $(id).addEventListener("input", paint2); $(id).addEventListener("change", paint2); });
+  paint2();
+
+  // move 3
+  function paint3() {
+    var G = +$("m3g").value, X = +$("m3t").value; $("m3gV").textContent = G + " s"; $("m3tV").textContent = X + " s";
+    var sel = $("m3b").value, bytes = sel === "api" ? 66024 : +sel, dst = sel === "api" ? INV.api : INV.receiver;
+    var gpu = [{ ts: G, util: 88, temp: 68, approved: false, node: $("m3n").value }], fl = [{ ts: X, src: INV.worker, dst: dst, port: 8080, bytes: bytes }];
+    var list = detect(gpu, fl, []), join = list.filter(function (f) { return f.rule === "compute-network-overlap"; });
+    var gx = 10 + G * 500 / 120, xx = 10 + X * 500 / 120, gap = Math.abs(G - X);
+    $("m3svg").innerHTML = '<line x1="10" y1="55" x2="510" y2="55" stroke="var(--rule-2)" stroke-width="2"/><rect x="' + (gx - 5 * 500 / 120) + '" y="49" width="' + (10 * 500 / 120) + '" height="12" rx="6" fill="var(--gpu)" opacity=".2"/><circle cx="' + gx + '" cy="28" r="8" fill="var(--gpu)"/><text x="' + gx + '" y="14" text-anchor="middle" style="font-family:var(--mono);font-size:11px;fill:var(--ink-3)">GPU ' + G + ' s</text><circle cx="' + xx + '" cy="82" r="8" fill="var(--net)"/><text x="' + xx + '" y="104" text-anchor="middle" style="font-family:var(--mono);font-size:11px;fill:var(--ink-3)">transfer ' + X + ' s</text><text x="260" y="104" text-anchor="middle" style="font-family:var(--mono);font-size:11px;fill:' + (join.length ? "var(--decoy)" : "var(--ink-3)") + '">gap ' + gap + ' s</text>';
+    var why = [];
+    if ($("m3n").value !== CFG.worker) why.push("the GPU node is not the worker");
+    if (gap > 5) why.push("the gap is over 5 seconds");
+    if (sel === "api") why.push("the destination is approved");
+    if (bytes < 50000) why.push("the transfer is under 50,000 bytes");
+    render($("m3f"), list, "No join: " + why.join("; ") + ".");
+    if (!join.length && list.length) { var d = document.createElement("div"); d.className = "fx none"; d.textContent = "No join: " + why.join("; ") + ". The signals above stay separate."; $("m3f").appendChild(d); }
+  }
+  ["m3g", "m3t", "m3n", "m3b"].forEach(function (id) { $(id).addEventListener("input", paint3); $(id).addEventListener("change", paint3); });
+  paint3();
+
+  // move 4
+  var POLICY = { "training-job": { read: ["dataset:*", "model:*", "config:*"], write: [], approve: false }, collector: { read: ["config:*"], write: ["evidence:*"], approve: false }, publisher: { read: ["*"], write: ["dataset:*", "model:*", "config:*"], approve: true }, auditor: { read: ["*"], write: [], approve: false } };
+  var ASSETS = ["dataset:telemetry-sample", "model:isolation-forest-reference", "config:detector-thresholds", "evidence:sample-export"];
+  function matches(pt, id) { if (pt === "*") return true; if (pt.slice(-2) === ":*") return id.split(":")[0] === pt.slice(0, -2); return pt === id; }
+  function evaluate(actor, op, id) {
+    var g = POLICY[actor]; if (!g) return { ok: false, why: "actor '" + actor + "' has no policy entry" };
+    if (op === "approve") return g.approve ? { ok: true, why: "actor may approve baselines" } : { ok: false, why: "actor may not approve baselines" };
+    if (ASSETS.indexOf(id) < 0) return { ok: false, why: "asset is outside the declared inventory scope" };
+    return g[op].some(function (pt) { return matches(pt, id); }) ? { ok: true, why: "matched a " + op + " grant" } : { ok: false, why: "no " + op + " grant for " + id };
+  }
+  var audit = [];
+  function logAudit(a, op, id, ok, outcome) { audit.push([a, op, id, ok ? "allow" : "deny", outcome]); $("m4log").innerHTML = audit.map(function (r) { return "<tr><td>" + r.join("</td><td>") + "</td></tr>"; }).join(""); }
+  $("m4ask").onclick = function () {
+    var a = $("m4actor").value, op = $("m4op").value, id = $("m4asset").value, d = evaluate(a, op, op === "approve" ? null : id);
+    var st = $("m4dec"); st.className = "status " + (d.ok ? "ok" : "bad");
+    st.textContent = (d.ok ? "Allowed: " : "Denied: ") + d.why + (d.ok ? (op === "read" ? ". Bytes are returned only after the fingerprint matches." : op === "write" ? ". Written, and different from the baseline until approved." : ". A new baseline version is created.") : ". Nothing on disk was touched.");
+    logAudit(a, op, op === "approve" ? "" : id, d.ok, d.ok ? "ok" : "denied");
+  };
+  var original = $("m4file").value, approvedHash = null, version = 1;
+  function sha(text) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
+  function paintFp() {
+    sha($("m4file").value).then(function (h) {
+      $("m4now").textContent = h; $("m4app").textContent = approvedHash; var ok = h === approvedHash;
+      $("m4now").className = "fp " + (ok ? "ok" : "bad"); $("m4st").className = "status " + (ok ? "ok" : "bad");
+      $("m4st").textContent = ok ? "ok: matches baseline " + version + ". A read through the store returns these bytes." : "modified: does not match baseline " + version + ". The read is refused, integrity-failure is recorded, and the baseline is not regenerated.";
+    });
+  }
+  sha(original).then(function (h) { approvedHash = h; paintFp(); });
+  $("m4file").addEventListener("input", paintFp);
+  $("m4approve").onclick = function () { sha($("m4file").value).then(function (h) { approvedHash = h; version++; $("m4ver").textContent = version; logAudit("publisher", "approve", "", true, "ok, baseline " + version); paintFp(); }); };
+  $("m4approveBad").onclick = function () { logAudit("training-job", "approve", "", false, "denied"); $("m4st").className = "status bad"; $("m4st").textContent = "denied: training-job may not approve baselines. A workload never approves its own files."; };
+  $("m4restore").onclick = function () { $("m4file").value = original; paintFp(); };
+  $("m4swap").addEventListener("change", function (e) {
+    var msg = { current: ["ok", "verification: pointer tag ok, manifest digest matches, manifest tag ok"], old: ["bad", "rejected: the old manifest's own tag is valid, but its digest is not the one named in the signed pointer"], edited: ["bad", "rejected: content does not match its authentication tag"], missing: ["bad", "rejected: no approved pointer, so nothing is approved. No fallback to the newest file."] }[e.target.value];
+    $("m4swapst").className = "status " + msg[0]; $("m4swapst").textContent = msg[1];
+  });
+
+  // move 5
+  var key = null, keyLabel = "", lastTag = null;
+  function canon(obj) { var keys = []; JSON.stringify(obj, function (k, v) { keys.push(k); return v; }); keys.sort(); return JSON.stringify(obj, keys); }
+  function newKey() { return crypto.subtle.generateKey({ name: "HMAC", hash: "SHA-256" }, true, ["sign", "verify"]).then(function (k) { key = k; return crypto.subtle.exportKey("raw", k); }).then(function (raw) { return sha("key-id:" + Array.prototype.join.call(new Uint8Array(raw), ",")); }).then(function (h) { keyLabel = h.slice(0, 12); }); }
+  function hmac(text) { return crypto.subtle.sign("HMAC", key, new TextEncoder().encode(text)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }); }
+  function parse() { try { return JSON.parse($("m5x").value); } catch (e) { return null; } }
+  function st5(cls, text) { $("m5st").className = "status " + cls; $("m5st").textContent = text + " Key id " + keyLabel + "."; }
+  $("m5seal").onclick = function () { var o = parse(); if (!o) { st5("bad", "That is not valid JSON."); return; } hmac(canon(o)).then(function (tag) { lastTag = tag; st5("ok", "Sealed. Tag " + tag.slice(0, 16) + "… over the canonical JSON."); }); };
+  $("m5verify").onclick = function () { if (!lastTag) { st5("bad", "Nothing has been sealed yet."); return; } var o = parse(); if (!o) { st5("bad", "That is not valid JSON."); return; } hmac(canon(o)).then(function (tag) { st5(tag === lastTag ? "ok" : "bad", tag === lastTag ? "Verified: unchanged since it was sealed with this key." : "Verification failed: content does not match its authentication tag. Treat the contents as unverified."); }); };
+  $("m5tamper").onclick = function () { $("m5x").value = $("m5x").value.replace("92.1", "70.0"); };
+  $("m5key").onclick = function () { newKey().then(function () { st5("bad", "A different key is now in use. The earlier seal will not verify: authenticated with a different key."); }); };
+  newKey().then(function () { st5("", "Not sealed yet. A key was generated in this browser and never leaves it."); });
+  $("m5replay").onclick = function () {
+    var o = parse(); if (!o) return; var gpu = [], fl = [];
+    (o.evidence || []).forEach(function (e) { if (e.source === "gpu-simulator") gpu.push({ ts: e.raw.ts, util: e.raw.gpu_util_percent, temp: e.raw.gpu_temp_c, approved: !!e.raw.job_approved, node: e.raw.node_id }); if (e.source === "zeek") fl.push({ ts: e.raw.ts, src: e.raw["id.orig_h"], dst: e.raw["id.resp_h"], port: e.raw["id.resp_p"], bytes: (e.raw.orig_bytes || 0) + (e.raw.resp_bytes || 0) }); });
+    render($("m5f"), detect(gpu, fl, []), "Recomputed from raw records: no finding, whatever the saved list claimed.");
+  };
+
+  // move 7
+  var DECK = [
+    { cat: "op", title: "Thermal anomaly", rule: "thermal", x: "GPU temperature 92 °C during steady low load. Network quiet." },
+    { cat: "sec", title: "Internal decoy accessed", rule: "honeypot-contact", x: "A login attempt from the worker on the decoy's web page." },
+    { cat: "inv", title: "Beacon-like connection pattern", rule: "periodic-connection", x: "Six connections to an internal receiver, 3.0 s apart, 141 bytes each." },
+    { cat: "inv", title: "Unapproved compute overlaps an unusual transfer", rule: "compute-network-overlap", x: "88% GPU with no approved job, and a 66 kB upload 2 seconds later from the same node." },
+    { cat: "sec", title: "Asset or baseline failed integrity verification", rule: "integrity-failure", x: "The model file's fingerprint no longer matches the approved baseline." },
+    { cat: "inv", title: "Request denied by the access policy", rule: "access-policy-violation", x: "training-job asked to write the model. The store said no." },
+    { cat: "sec", title: "Multiple destination ports probed", rule: "port-spread", x: "Seven ports on one machine in two seconds, six refused." }
+  ];
+  var di = 0, dn = 0, dr = 0;
+  var FEED = { op: "Broken. Page the operations team; nobody is attacking anything.", inv: "Look closer. The pattern deserves a person; it is not a confirmed incident.", sec: "Should not have happened. Open an investigation with the raw records attached." };
+  function dealCard() { var c = DECK[di % DECK.length]; render($("m7card"), [{ cat: "none", title: c.title, rule: c.rule, x: c.x, not: "Category hidden until you choose." }], ""); $("m7card").firstChild.className = "fx"; }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-bin]"), function (b) {
+    b.addEventListener("click", function () {
+      var c = DECK[di % DECK.length], pick = b.getAttribute("data-bin"), st = $("m7fb"); dn++;
+      if (pick === "auto") { st.className = "status bad"; st.textContent = "Not an option here. Automatic containment is not implemented on purpose: the sensors cannot give the certainty it needs. " + FEED[c.cat]; }
+      else if (pick === c.cat) { dr++; st.className = "status ok"; st.textContent = "Right. " + FEED[c.cat]; }
+      else { st.className = "status bad"; st.textContent = "Not this bin. " + FEED[c.cat]; }
+      $("m7n").textContent = dn; $("m7r").textContent = dr; di++; dealCard();
+    });
+  });
+  dealCard();
+})();
+</script>
 
 </body>
 </html>
