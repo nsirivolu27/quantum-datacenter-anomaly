@@ -2,6 +2,19 @@
 
 Record your benchmark runs here so conclusions are tied to a config and a version.
 
+## Reproducibility of historical results
+
+The checkout at `644b690` referenced `qdc_anomaly.data.synthetic` but did not track
+the data package. An unanchored `data/` ignore rule also excluded that source
+directory. The local security demo adds a new generator based on the documented
+behavior and anchors the ignore rule to the repository root.
+
+The tables below remain historical results. The reconstructed generator does not
+reproduce the original dataset, so those numbers are not current validation
+results. Rerun the benchmark and record its configuration before making an accuracy
+comparison. The dashboard uses separate synthetic GPU inputs and makes no
+detection-accuracy claim.
+
 ## Template
 
 ```

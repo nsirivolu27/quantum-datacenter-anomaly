@@ -1,0 +1,107 @@
+name: qdc-sentinel
+x-app: &app
+  image: qdc-sentinel-local
+  environment:
+    PYTHONPATH: /app/src
+  volumes:
+    - ./src:/app/src:ro
+    - ./lab/runtime:/evidence
+    - ./lab/settings.json:/app/lab/settings.json:ro
+  networks: [lab]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging:
+    driver: json-file
+    options: {max-size: "5m", max-file: "2"}
+
+services:
+  init:
+    <<: *app
+    build:
+      context: .
+      dockerfile: lab/Dockerfile
+    command: [init]
+  api:
+    <<: *app
+    command: [api]
+    depends_on:
+      init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  receiver:
+    <<: *app
+    command: [receiver]
+    depends_on:
+      init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  canary:
+    image: thinkst/opencanary@sha256:291f43be18a942aac0dcf5ef16148a710d06dd45fccdb5dfda786f8058731cd1
+    command: [--dev, --uid=nobody, --gid=nogroup]
+    volumes:
+      - ./lab/opencanary.conf:/root/.opencanary.conf:ro
+      - ./lab/runtime/canary:/evidence
+    networks: [lab]
+    depends_on:
+      init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import socket; socket.create_connection(('127.0.0.1',8080),2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: json-file
+      options: {max-size: "5m", max-file: "2"}
+  worker:
+    <<: *app
+    command: [worker]
+    volumes:
+      - ./src:/app/src:ro
+      - ./lab/runtime:/evidence
+      - ./lab/settings.json:/app/lab/settings.json:ro
+      # Declared assets are visible to the workload read-only. The integrity key,
+      # baselines, and audit log under security/local are not mounted anywhere here.
+      - ./security/assets:/assets:ro
+    depends_on:
+      api: {condition: service_healthy}
+      receiver: {condition: service_healthy}
+      canary: {condition: service_healthy}
+  zeek:
+    image: zeek/zeek:8.0.11@sha256:3882d4b46fa82993ecb50b8881389fe4e40e8e2ba77547402f72b65a5a89591b
+    network_mode: service:worker
+    cap_drop: [ALL]
+    cap_add: [NET_RAW, NET_ADMIN]
+    security_opt: [no-new-privileges:true]
+    working_dir: /evidence
+    entrypoint: [/usr/local/zeek/bin/zeek]
+    command: [-C, -i, eth0, /config/local.zeek]
+    volumes:
+      - ./lab/runtime/zeek:/evidence
+      - ./lab/local.zeek:/config/local.zeek:ro
+    depends_on: [worker]
+    logging:
+      driver: json-file
+      options: {max-size: "5m", max-file: "2"}
+  dashboard:
+    <<: *app
+    command: [dashboard, --host, "0.0.0.0"]
+    networks: [management]
+    ports: ["127.0.0.1:8765:8765"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+networks:
+  management: {}
+  lab:
+    internal: true

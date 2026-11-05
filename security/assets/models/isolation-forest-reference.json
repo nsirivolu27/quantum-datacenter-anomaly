@@ -1,0 +1,11 @@
+{
+  "artifact": "isolation-forest-reference",
+  "detector": "qdc_anomaly.detectors.classical.IsolationForestDetector",
+  "features": "make_windows mean, standard deviation, trend over 10 GPU samples",
+  "training_seed": 41,
+  "calibration_seed": 72,
+  "window_samples": 10,
+  "threshold_quantile": 0.99,
+  "threshold": 0.585328,
+  "note": "Sample model artifact for the integrity experiments; parameters describe how GPUAnalytics rebuilds the model."
+}

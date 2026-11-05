@@ -10,7 +10,11 @@ htmlcov/
 .ipynb_checkpoints/
 .venv/
 venv/
-data/
+/data/
+/lab/runtime/
 results/
 results-*/
 .env
+# Local integrity key material and authenticated manifests; never commit
+*.key
+/security/local/

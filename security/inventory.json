@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "root": "assets",
+  "assets": [
+    {
+      "id": "dataset:telemetry-sample",
+      "kind": "dataset",
+      "path": "datasets/telemetry-sample.csv",
+      "approved_version": "2026.11-sample-1",
+      "description": "Small synthetic telemetry extract used by the integrity experiments"
+    },
+    {
+      "id": "model:isolation-forest-reference",
+      "kind": "model",
+      "path": "models/isolation-forest-reference.json",
+      "approved_version": "ref-41-72",
+      "description": "Sample model artifact describing the lab's reference Isolation Forest"
+    },
+    {
+      "id": "config:detector-thresholds",
+      "kind": "config",
+      "path": "configs/detector-thresholds.json",
+      "approved_version": "thresholds-1",
+      "description": "Sample detector thresholds; lab/settings.json stays the live configuration"
+    },
+    {
+      "id": "evidence:sample-export",
+      "kind": "evidence",
+      "path": "evidence/sample-export.json",
+      "approved_version": "sample-run",
+      "description": "Small exported snapshot used to demonstrate sealing and verification"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "actors": {
+    "training-job": {
+      "description": "Simulated approved workload. Label only; nothing authenticates it.",
+      "read": ["dataset:telemetry-sample", "model:isolation-forest-reference", "config:detector-thresholds"],
+      "write": []
+    },
+    "collector": {
+      "description": "Simulated observation collector. May write only the evidence asset.",
+      "read": ["config:detector-thresholds"],
+      "write": ["evidence:*"]
+    },
+    "publisher": {
+      "description": "Trusted role that publishes artifacts and approves baselines. Must hold the key file.",
+      "read": ["*"],
+      "write": ["dataset:*", "model:*", "config:*"],
+      "approve": true
+    },
+    "auditor": {
+      "description": "Reads and verifies; never writes assets or approves baselines.",
+      "read": ["*"],
+      "write": []
+    }
+  }
+}
