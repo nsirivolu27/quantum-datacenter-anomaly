@@ -5,6 +5,7 @@
 
 ## Future plans
 
+- We're making an illustrated children's book about data-center monitoring and cybersecurity, based on these two walkthroughs.
 - Connect real GPU telemetry and compare workloads across multiple servers.
 - Improve anomaly detection and measure false-positive rates.
 - Trace suspicious traffic between servers and link it to the workloads involved.
