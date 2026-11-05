@@ -4,6 +4,8 @@
   const pages = [...document.querySelectorAll('.page')];
   const previous = document.querySelector('#previous');
   const next = document.querySelector('#next');
+  const previousBar = document.querySelector('#previous-bar');
+  const nextBar = document.querySelector('#next-bar');
   const counter = document.querySelector('#counter');
   const progress = document.querySelector('#progress');
   const contents = document.querySelector('#contents');
@@ -30,9 +32,14 @@
     const found = pages.findIndex(page => page.id === id);
     current = found < 0 ? 0 : found;
     stopReading();
-    pages.forEach((page, index) => { page.hidden = index !== current; });
-    previous.disabled = current === 0;
-    next.disabled = current === pages.length - 1;
+    pages.forEach((page, index) => {
+      page.hidden = index !== current;
+      page.classList.remove('settle');
+    });
+    void pages[current].offsetWidth; // restart the settle animation on every turn
+    pages[current].classList.add('settle');
+    previous.disabled = previousBar.disabled = current === 0;
+    next.disabled = nextBar.disabled = current === pages.length - 1;
     counter.textContent = `Page ${current + 1} of ${pages.length}`;
     progress.value = current + 1;
     document.title = `${pages[current].dataset.title} · Where Does My Picture Go?`;
@@ -51,8 +58,8 @@
     if (target) location.hash = target.id;
   }
 
-  previous.addEventListener('click', () => turn(-1));
-  next.addEventListener('click', () => turn(1));
+  [previous, previousBar].forEach(item => item.addEventListener('click', () => turn(-1)));
+  [next, nextBar].forEach(item => item.addEventListener('click', () => turn(1)));
   window.addEventListener('hashchange', () => showPage(true));
   document.querySelector('.skip').addEventListener('click', event => {
     event.preventDefault();
