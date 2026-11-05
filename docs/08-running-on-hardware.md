@@ -61,7 +61,7 @@ Both detectors create their device in one place (`qml.device(config.device, wire
 
 Cost: Braket charges per task plus per shot. A kernel matrix for 160 training windows is about 12,700 circuits. On the SV1 simulator that is cheap; on a real device it adds up. The practical approach is to fit on a simulator and send only a small scoring batch to the real device.
 
-The CloudWatch loader uses the same AWS credentials, so data loading and quantum scoring can live in one account.
+The device ARNs above are examples from when this lesson was written. Device availability changes, so pick the current device in the Braket console or the [device list](https://docs.aws.amazon.com/braket/latest/developerguide/braket-devices.html) and check its availability window and the [pricing page](https://aws.amazon.com/braket/pricing/) before running anything. The `s3_destination_folder` is a placeholder; no bucket exists for this project. There is no CloudWatch loader in the repository, so Braket is an optional extension of the detector research, separate from the telemetry and security work. See [the AWS architecture](12-aws-architecture.md).
 
 ## IBM Quantum
 

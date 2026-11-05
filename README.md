@@ -1,10 +1,72 @@
-# Quantum Data Center Anomaly Detection
+# Data Center Telemetry and Security
 
-This project answers one question: **can a small quantum circuit spot problems in data center telemetry, and how does it stack up against the tools teams already use?**
+This repository studies GPU metrics, anomaly detection, and network security in a
+local data-center lab. It combines simulated GPU observations with actual Zeek
+connection logs and OpenCanary events. It retains the original classical and
+quantum anomaly-detection benchmark.
 
-It is a working Python package with a fixed comparison protocol, five detectors behind one interface, and a lesson sequence in `docs/` that explains each piece in plain terms. Basic Python and some scikit-learn experience are enough to read every file.
+Start with [GPU metrics and security](docs/10-gpu-metrics-and-security.md), then
+the [local experiments](docs/09-local-security-lab.md). The
+[code and API reference](docs/11-code-reference.md) describes the implementation
+and the boundary for a future frontend. UI design is separate from this work.
+[Data security and integrity](docs/13-data-security-and-integrity.md) covers the
+asset inventory, access policy, authenticated baselines, and sealed evidence bundles.
+[AWS architecture](docs/12-aws-architecture.md) is a proposal only; nothing is deployed.
+[Security results](docs/security-results.md) records commands actually run,
+observed outcomes, and checks that could not run on the current machine.
 
-## The idea in one picture
+## Run the local experiments
+
+The two-minute test cycle generates
+normal work, an approved training job, a cooling fault, decoy probes, recurring
+connections, unapproved compute, and recovery. Findings retain supporting evidence IDs.
+
+With Docker Desktop running Linux containers, run from this repository:
+
+```bash
+docker compose -f compose.lab.yml up --build -d
+```
+
+An optional diagnostic viewer runs at **http://localhost:8765**. The first build
+downloads Python dependencies and sensor images. Only this viewer is published,
+on loopback; all traffic targets are inside the isolated Docker network.
+
+```bash
+docker compose -f compose.lab.yml ps
+python scripts/verify_lab.py
+docker compose -f compose.lab.yml down
+```
+
+The demo reuses the existing window features and Isolation Forest. GPU readings
+and job attribution are simulated; network and decoy observations are real.
+Recovery stops scenario traffic generation; it does not enforce network quarantine.
+AWS services and real GPU exporters are future integration work. See the
+[local lab guide](docs/09-local-security-lab.md) for architecture, commands, and expected evidence.
+
+After installing the package, analysis also runs without a browser:
+
+```bash
+python -m qdc_anomaly.lab describe
+python -m qdc_anomaly.lab inspect --evidence lab/runtime
+python -m qdc_anomaly.lab replay --input evidence.json --out replay.json
+```
+
+Asset baselines and evidence sealing. The key, baselines, and audit log go under
+`security/local/` (ignored by git, outside the asset root):
+
+```bash
+python -m qdc_anomaly.security keygen
+python -m qdc_anomaly.security baseline --approved-by publisher
+python -m qdc_anomaly.security verify
+python -m qdc_anomaly.security access-demo
+python -m qdc_anomaly.security seal-evidence --input evidence.json --out evidence.sealed.json
+python -m qdc_anomaly.security verify-evidence --input evidence.sealed.json
+```
+
+Actor names are labels, enforcement covers only calls through the guarded store,
+and HMAC authentication depends on a local key file. See the security doc for limits.
+
+## The analytics pipeline
 
 ```
 rack metrics   ->   10 minute windows   ->   4 numbers per window   ->   detector   ->   anomaly score
@@ -44,7 +106,12 @@ docker run --rm -v "$PWD/results:/app/results" qdc-anomaly
 
 | Folder | What it does |
 |---|---|
-| `src/qdc_anomaly/data/` | Makes fake but realistic telemetry with labeled faults; loads real data from CloudWatch |
+| `src/qdc_anomaly/data/` | Makes synthetic telemetry with labeled faults; reconstructed generator, see the results log |
+| `src/qdc_anomaly/lab/` | Local security demo, GPU simulator, sensor normalization, and dashboard |
+| `src/qdc_anomaly/security/` | Asset inventory, access policy, HMAC-authenticated baselines, evidence sealing, audit records |
+| `security/` | Declared sample assets, inventory, and policy used by the integrity experiments |
+| `docs/12-aws-architecture.md` | Proposed AWS mapping (EC2, VPC, CloudWatch, S3, IAM, KMS, CloudTrail, SSM, optional Braket); not deployed |
+| `compose.lab.yml` | Isolated worker, API, test receiver, Zeek, OpenCanary, and dashboard |
 | `src/qdc_anomaly/features/` | Turns the time series into windows and shrinks each window to 4 numbers |
 | `src/qdc_anomaly/detectors/` | The five detectors, all with the same `fit` and `score` methods |
 | `src/qdc_anomaly/evaluation/` | Scoring and the benchmark that compares everything |

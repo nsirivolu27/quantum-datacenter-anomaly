@@ -45,6 +45,7 @@ notebooks = [
 
 [project.scripts]
 qdc = "qdc_anomaly.cli:main"
+sentinel = "qdc_anomaly.lab.__main__:main"
 
 [project.urls]
 Documentation = "docs/README.md"
@@ -53,7 +54,7 @@ Documentation = "docs/README.md"
 where = ["src"]
 
 [tool.setuptools.package-data]
-qdc_anomaly = ["py.typed"]
+qdc_anomaly = ["py.typed", "lab/static/*.html", "lab/static/*.css", "lab/static/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

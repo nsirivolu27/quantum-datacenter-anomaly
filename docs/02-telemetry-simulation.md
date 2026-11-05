@@ -54,4 +54,4 @@ This prints how many minutes of each fault type were injected.
 
 ## Real data
 
-`src/qdc_anomaly/data/cloudwatch.py` loads the same column layout from Amazon CloudWatch. Real data has no labels, so you can score it but not measure recall. The usual approach is to fit on a quiet week and manually review the top scored windows.
+There is no CloudWatch loader in this repository. Earlier documentation referred to `src/qdc_anomaly/data/cloudwatch.py`, but that file was never tracked and nothing reads from AWS today. `qdc score --input` accepts any CSV with the same column layout, so a loader can be added later as a separate module; the proposed shape is in [the AWS architecture](12-aws-architecture.md). Real data has no labels, so you can score it but not measure recall. The usual approach is to fit on a quiet week and manually review the top scored windows.
