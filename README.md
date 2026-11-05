@@ -5,8 +5,6 @@
 Follow one server: watch its GPU readings, trace its network traffic, and see how
 access controls and integrity checks protect its files.
 
-![Sentinel Lab: an illustrated walkthrough of a data center server](docs/assets/sentinel-lab-preview.png)
-
 ## Explore
 
 - [Inside the data center](site/index.html) — GPU metrics, traffic, and unusual activity.
