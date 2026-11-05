@@ -12,6 +12,17 @@ The book has eight original illustrations and twelve browser activities. Pages
 30–32 contain reading guidance and primary references. Print on Letter or A4
 with **Fit** selected. The PDF uses landscape pages and includes paper activities.
 
+## Second edition design
+
+Five page compositions are assigned per page in `book.json` (`layout`: cover,
+scene, moment, talk, discover; `focus` picks which part of a reused illustration
+stays in frame). The reader uses Fredoka for titles and Andika, a face designed
+for beginning readers, for story text, with system fallbacks. Pip's "Try it"
+table sits inside the scene on discovery pages. Page turns use large side arrows
+on wide screens and a bottom bar on phones; the page chooser shows each page's
+picture. Motion is limited to a short page settle and Pip's bob, both off under
+reduced motion. The PDF mirrors the same compositions with rounded clipping.
+
 ## Editing the book
 
 - `book.json` is the shared manuscript for both editions.
