@@ -1,4 +1,27 @@
-# Data Center Telemetry and Security
+# Sentinel Lab
+
+**Inside a data center, one second at a time.**
+
+A visual walkthrough of GPU telemetry, network traffic, anomaly detection, and
+data security. Follow one server through its sensors, detection rules, access
+checks, and evidence verification.
+
+![Sentinel Lab walkthrough: Inside a data center, one second at a time, with an illustrated server hall](docs/assets/sentinel-lab-preview.png)
+
+[Telemetry walkthrough source](site/index.html) ·
+[Security walkthrough source](site/security.html)
+
+The image above is a preview. To open the full animated walkthrough, run this
+from the repository root and visit **http://127.0.0.1:8000**:
+
+```bash
+python -m http.server 8000 --bind 127.0.0.1 --directory site
+```
+
+The walkthrough is a static explanation; running the live traffic experiments
+uses the separate Docker commands below.
+
+## Data center telemetry and security
 
 This repository studies GPU metrics, anomaly detection, and network security in a
 local data-center lab. It combines simulated GPU observations with actual Zeek
@@ -8,7 +31,8 @@ quantum anomaly-detection benchmark.
 Start with [GPU metrics and security](docs/10-gpu-metrics-and-security.md), then
 the [local experiments](docs/09-local-security-lab.md). The
 [code and API reference](docs/11-code-reference.md) describes the implementation
-and the boundary for a future frontend. UI design is separate from this work.
+and the interfaces used by optional clients. The illustrated walkthrough lives
+under `site/`.
 [Data security and integrity](docs/13-data-security-and-integrity.md) covers the
 asset inventory, access policy, authenticated baselines, and sealed evidence bundles.
 [AWS architecture](docs/12-aws-architecture.md) is a proposal only; nothing is deployed.
@@ -106,6 +130,7 @@ docker run --rm -v "$PWD/results:/app/results" qdc-anomaly
 
 | Folder | What it does |
 |---|---|
+| `site/` | Illustrated Sentinel Lab walkthroughs covering telemetry and data security |
 | `src/qdc_anomaly/data/` | Makes synthetic telemetry with labeled faults; reconstructed generator, see the results log |
 | `src/qdc_anomaly/lab/` | Local security demo, GPU simulator, sensor normalization, and dashboard |
 | `src/qdc_anomaly/security/` | Asset inventory, access policy, HMAC-authenticated baselines, evidence sealing, audit records |
