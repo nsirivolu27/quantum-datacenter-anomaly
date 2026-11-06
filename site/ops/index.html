@@ -143,6 +143,67 @@ tr.click { cursor: pointer; }
 .roe { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .roe ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 13px; display: grid; gap: 4px; }
 
+/* Engineering workspace: shared scope, evidence, then interpretation. */
+#dash { width: min(1420px, 97vw); }
+.dash-nav, .dash-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.dash-nav { border-bottom: 1px solid var(--line); padding: 10px 18px; }
+.dash-nav button { background: transparent; }
+.dash-nav button[aria-selected="true"] { border-color: var(--teal); color: var(--teal); background: var(--panel); }
+.dash-tools { padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.dash-tools label { display: flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; }
+.dash-tools .note { flex: 1 1 240px; }
+.dash-page { display: grid; gap: 16px; min-width: 0; }
+.metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.metric { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+.metric span { display: block; color: var(--ink-2); font-size: 12px; }
+.metric strong { display: block; font: 500 23px var(--mono); margin: 5px 0; overflow-wrap: anywhere; }
+.metric small { display: block; color: var(--ink-3); line-height: 1.5; }
+.metric.attention { border-color: var(--amber); }
+.metric.attention strong { color: var(--amber); }
+.dash-copy { color: var(--ink-2); font-size: 13px; margin: 0; line-height: 1.65; }
+.status-strip { padding: 10px 12px; border-left: 3px solid var(--teal); background: var(--panel); color: var(--ink-2); font-size: 12px; }
+.status-strip.gap { border-color: var(--amber); }
+.rack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 8px; }
+.rack-item { padding: 9px; border: 1px solid var(--line); border-radius: 6px; }
+.rack-item b, .rack-item small { display: block; }
+.rack-item small { color: var(--ink-3); font: 11px var(--mono); margin-top: 5px; }
+meter { width: 100%; height: 10px; accent-color: var(--teal); }
+.detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.device-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.detail-grid dl { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+.detail-grid dt { color: var(--ink-3); font-size: 12px; margin-top: 9px; }
+.detail-grid dt:first-child { margin-top: 0; }
+.detail-grid dd { margin: 3px 0 0; color: var(--ink); font: 13px var(--mono); overflow-wrap: anywhere; }
+.workflow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; counter-reset: stages; }
+.workflow article { counter-increment: stages; border: 1px solid var(--line); border-radius: 9px; padding: 14px; }
+.workflow h4 { margin: 0 0 8px; font-size: 14px; }
+.workflow h4::before { content: "0" counter(stages) " / "; color: var(--teal); font-family: var(--mono); }
+.workflow p { margin: 0; color: var(--ink-2); font-size: 13px; }
+.runbook { display: grid; gap: 10px; }
+.runbook h4 { margin: 0; font-size: 14px; color: var(--teal); }
+.runbook p { margin: 0; color: var(--ink-2); font-size: 13px; }
+.runbook ol { padding-left: 20px; margin: 0; display: grid; gap: 8px; color: var(--ink-2); font-size: 13px; }
+.runbook code, #dash td code { overflow-wrap: anywhere; }
+#dash .nodes-wrap { max-height: 370px; }
+#dash table.t th { position: sticky; top: 0; z-index: 1; background: var(--panel); }
+#dash .row-action { padding: 3px 6px; min-height: 30px; font: 12px var(--mono); }
+.source-links { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12px; }
+@media (max-width: 900px) {
+  .metric-grid, .detail-grid, .workflow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  #dash { max-height: 97dvh; width: 98vw; }
+  #dash .dlg-body { padding: 10px; }
+  #dash .dlg-head { padding: 10px; }
+  .dash-nav { padding: 8px 10px; gap: 5px; }
+  .dash-nav button { font-size: 12px; padding: 6px 8px; }
+  .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric strong { font-size: 19px; }
+  .detail-grid, .workflow, .device-charts { grid-template-columns: minmax(0, 1fr); }
+  .dash-tools label { flex-wrap: wrap; }
+  .dash-tools select { max-width: 100%; }
+}
+
 @media (max-width: 1180px) {
   html, body { height: auto; }
   .app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 64vh auto auto; }
@@ -255,23 +316,79 @@ tr.click { cursor: pointer; }
 </div>
 
 <dialog id="dash" aria-labelledby="dashTitle">
-  <div class="dlg-head"><div><h2 id="dashTitle">GPU mainframe</h2><p id="dashSub">Streaming synthetic telemetry, one sample per GPU per second</p></div><button id="closeDash">Close</button></div>
+  <div class="dlg-head"><div><h2 id="dashTitle">GPU mainframe · engineering view</h2><p id="dashSub">Streaming synthetic telemetry, one sample per GPU per second</p></div><div class="dash-tools"><button id="dashPause" aria-pressed="false">Pause simulation</button><button id="closeDash">Close</button></div></div>
+  <nav class="dash-nav" role="tablist" aria-label="Mainframe views">
+    <button id="tab-overview" role="tab" aria-controls="dash-overview" aria-selected="true" data-dash-tab="overview">Cluster overview</button>
+    <button id="tab-hardware" role="tab" aria-controls="dash-hardware" aria-selected="false" tabindex="-1" data-dash-tab="hardware">GPU &amp; workloads</button>
+    <button id="tab-network" role="tab" aria-controls="dash-network" aria-selected="false" tabindex="-1" data-dash-tab="network">Network &amp; data</button>
+    <button id="tab-triage" role="tab" aria-controls="dash-triage" aria-selected="false" tabindex="-1" data-dash-tab="triage">Investigation</button>
+    <button id="tab-model" role="tab" aria-controls="dash-model" aria-selected="false" tabindex="-1" data-dash-tab="model">How it operates</button>
+  </nav>
   <div class="dlg-body">
+    <div class="status-strip" id="telemetryStatus" role="status"></div>
+    <div class="dash-tools">
+      <label>Inspect GPU <select id="inspectGpu" aria-label="Inspect GPU"></select></label>
+      <label>Evidence window <select id="evidenceWindow"><option value="30">30 seconds</option><option value="60" selected>60 seconds</option><option value="120">120 seconds</option></select></label>
+      <button id="exportEvidence">Export evidence JSON</button>
+      <p class="note">All values are browser-generated. Windows use simulation time. No hardware, packet capture, or AWS account is connected.</p>
+    </div>
+    <section class="dash-page" id="dash-overview" role="tabpanel" aria-labelledby="tab-overview">
+    <div class="metric-grid" id="clusterMetrics"></div>
     <div class="charts">
-      <div class="chart"><h4>Cluster utilization <b id="cU">0%</b></h4><canvas id="chU"></canvas></div>
-      <div class="chart"><h4>Temperature, median and max <b id="cT">0 °C</b></h4><canvas id="chT"></canvas></div>
-      <div class="chart"><h4>Power draw <b id="cP">0 kW</b></h4><canvas id="chP"></canvas></div>
-      <div class="chart"><h4>Egress allowed and denied <b id="cE">0 MB/s</b></h4><canvas id="chE"></canvas></div>
+      <div class="chart"><h4>GPU busy time, fleet mean <b id="cU">—</b></h4><canvas id="chU" role="img" aria-label="GPU busy time percentage over the last 120 simulation seconds"></canvas><p class="note">Busy time does not measure useful work.</p></div>
+      <div class="chart"><h4>Temperature, median / max <b id="cT">—</b></h4><canvas id="chT" role="img" aria-label="Median and maximum GPU temperature in degrees Celsius over 120 seconds"></canvas><p class="note">85 °C is this lab's alert, not a device limit.</p></div>
+      <div class="chart"><h4>GPU board power <b id="cP">—</b></h4><canvas id="chP" role="img" aria-label="Total GPU board power in kilowatts over 120 seconds"></canvas><p class="note">Excludes CPUs, cooling, storage and switches.</p></div>
+      <div class="chart"><h4>Unapproved outbound payload <b id="cE">—</b></h4><canvas id="chE" role="img" aria-label="Allowed payload to unapproved peers in decimal megabytes per second over 120 seconds"></canvas><p class="note" id="deniedCaption">Denied events are counted separately.</p></div>
     </div>
     <div class="two">
-      <div class="box heat"><h3>Temperature by GPU, last 60 s <span>rows are GPUs, columns are seconds</span></h3><canvas id="heat"></canvas></div>
-      <div class="box"><h3>Detections <span id="detCount">0 open</span></h3><div class="nodes-wrap"><table class="t"><thead><tr><th>Time</th><th>Rule</th><th>Subject</th><th>Seen by</th><th>Status</th></tr></thead><tbody id="detBody"></tbody></table></div></div>
+      <div class="box heat"><h3>Temperature by GPU, last 60 s</h3><canvas id="heat" role="img" aria-label="GPU temperature heatmap; rows are GPUs, columns are seconds"></canvas><p class="note">Top row: gpu-01. Blue: cool · teal: 66 °C · amber: approaching 85 °C · red: ≥85 °C · dark: missing. Exact current values are in GPU &amp; workloads.</p></div>
+      <div class="box"><h3>What needs attention <span>observed signals</span></h3><div id="attentionList" class="runbook"></div></div>
     </div>
-    <div class="box"><h3>GPU nodes <span>sorted by context score; select a row to find it in the hall</span></h3>
-      <div class="nodes-wrap tw"><table class="t"><thead><tr><th>GPU</th><th>Rack</th><th>Job</th><th class="n">Util %</th><th class="n">Temp °C</th><th class="n">Expected °C</th><th class="n">Context z</th><th class="n">Power W</th><th class="n">Memory MB</th><th>State</th></tr></thead><tbody id="nodeBody"></tbody></table></div>
-      <p class="note" style="margin-top:8px">Context z is temperature relative to the expected temperature for the current load (42 °C plus 0.3 per percent busy), divided by the simulator's noise. Above 4 it is flagged as context, never as a verdict. This is the feature the repository's model evaluation named as the next experiment.</p>
+    <div class="box"><h3>Rack capacity <span>4 simulated GPUs per rack · GPU power only</span></h3><div id="rackMetrics" class="rack-grid"></div></div>
+    </section>
+    <section class="dash-page" id="dash-hardware" role="tabpanel" aria-labelledby="tab-hardware" hidden>
+      <div class="box"><h3 id="gpuDetailTitle">Selected GPU</h3><p class="dash-copy" id="gpuContext"></p><div class="detail-grid" id="gpuDetails"></div></div>
+      <div class="device-charts"><div class="chart"><h4>Selected GPU · activity % <b>last 120s</b></h4><canvas id="deviceActivity" role="img" aria-label="Selected GPU busy, SM active and DRAM active percentages over the last 120 simulation seconds"></canvas><p class="note">Teal: GPU busy · blue: SM active · amber: DRAM active. Missing observations leave a gap.</p></div><div class="chart"><h4>Selected GPU · temperature °C <b>last 120s</b></h4><canvas id="deviceTemperature" role="img" aria-label="Selected GPU observed and expected temperature over the last 120 simulation seconds"></canvas><p class="note">Amber: observed · blue: load expectation · red dashed: 85 °C lab alert. Current values are listed above.</p></div></div>
+      <div class="box"><h3>Exercise a diagnosis <span>selected GPU · 30 simulated seconds</span></h3><div class="dash-tools"><label>Condition <select id="diagnosticScenario"><option value="thermal">Cooling loss</option><option value="memory">Memory pressure</option><option value="fabric">Interconnect degradation</option><option value="ecc">Corrected memory errors</option><option value="gap">Telemetry interruption</option></select></label><button id="runDiagnostic">Run condition</button><button id="stopDiagnostic" disabled>End condition</button></div><p id="diagnosticStatus" class="note" role="status">These controlled conditions affect the simulation only. Use Investigation to compare evidence and alternative explanations.</p></div>
+      <div class="box"><h3>GPU inventory <span id="nodeCount"></span></h3><div class="dash-tools"><label>Show <select id="nodeFilter"><option value="all">All GPUs</option><option value="attention">Needs investigation</option><option value="unapproved">Busy, no approved job</option><option value="stale">Missing telemetry</option></select></label></div>
+        <div class="nodes-wrap tw"><table class="t"><thead><tr><th>GPU</th><th>Rack</th><th>Job</th><th>Busy %</th><th>Temp °C</th><th>Expected °C</th><th>Context z</th><th>Power W</th><th>VRAM GiB</th><th>Sample age</th></tr></thead><tbody id="nodeBody"></tbody></table></div>
+        <p class="note">Context z = (temperature − (42 + 0.3 × busy %)) / 1.15. |z| ≥ 4 is a heuristic residual alert in this simulator, not a calibrated attack probability. Quarantined GPUs are excluded from that baseline.</p>
+      </div>
+      <div class="box"><h3>Scheduler assignments <span>authorization context, not process attribution</span></h3><div class="tw"><table class="t"><thead><tr><th>Job / owner</th><th>Phase</th><th>Assigned GPUs</th><th>Mean busy %</th><th>Remaining</th></tr></thead><tbody id="jobBody"></tbody></table></div></div>
+    </section>
+    <section class="dash-page" id="dash-network" role="tabpanel" aria-labelledby="tab-network" hidden>
+      <div class="metric-grid" id="networkMetrics"></div>
+      <div class="box"><h3 id="peerTitle">Selected GPU connections</h3><div class="nodes-wrap tw"><table class="t"><thead><tr><th>Peer / service</th><th>Direction</th><th>Events</th><th>Allowed payload</th><th>Denied</th><th>Timing</th></tr></thead><tbody id="peerBody"></tbody></table></div><p class="note">These are synthetic event records, not Zeek output. A storage response is inbound to the GPU even when it initiates the request. Blocked attempts contribute zero application payload. Timing uses up to the last 10 same-peer events in the selected window.</p></div>
+      <div class="two"><div class="box"><h3>Data access and integrity <span id="auditCount"></span></h3><div class="nodes-wrap tw"><table class="t"><thead><tr><th>Time</th><th>Actor</th><th>Action / resource</th><th>Result</th></tr></thead><tbody id="auditBody"></tbody></table></div></div><div class="box runbook"><h4>Follow the evidence boundary</h4><p>Network records establish endpoints, timing and byte counts. They do not identify the process, decrypt TLS, or prove which file moved.</p><p>Join workload identity and API access logs to a protected artifact manifest. A denied request demonstrates a policy decision; an integrity mismatch means content differs from its trusted reference.</p><p id="dataControls"></p><p>No integrity checks recorded means unknown verification coverage, not “all data verified.” These browser events illustrate those joins; they are not signed evidence.</p></div></div>
+      <div class="box"><h3>Collection coverage <span>simulated control state</span></h3><div id="sensorCoverage" class="detail-grid"></div><p class="note">Production collection must also measure packet loss, exporter scrape errors, dropped log records and clock skew. Those quantities are not measured here. A quiet event stream is not proof that a sensor is healthy.</p></div>
+    </section>
+    <section class="dash-page" id="dash-triage" role="tabpanel" aria-labelledby="tab-triage" hidden>
+      <div class="two"><div class="box runbook" id="investigation"></div><div class="box runbook"><h4>Investigation sequence</h4><ol><li>Check sample age, expected coverage and time alignment before trusting a flat chart.</li><li>Identify the GPU, rack, approved job, owner and workload phase. Compare with peers doing equivalent work.</li><li>Separate hardware degradation from unauthorized activity using error counters, thermal limits, job history and network evidence.</li><li>Correlate the destination, access decision and artifact version. Confirm process identity with host telemetry; this demo has no process collector.</li><li>Preserve evidence, assess job impact, and obtain response authorization before isolating real infrastructure.</li></ol><p>The hall's containment animation is scripted. Finding status follows simulator logic; it is not an analyst resolution or proof that a host was recovered.</p></div></div>
+      <div class="box"><h3>Detection evidence <span id="detCount"></span></h3><div class="dash-tools"><label>Scope <select id="findingScope"><option value="all">Entire cluster</option><option value="gpu">Selected GPU</option></select></label><label>State <select id="findingState"><option value="all">All states</option><option value="open">Open</option><option value="contained">Contained</option></select></label></div><div class="nodes-wrap tw"><table class="t"><thead><tr><th>First / last seen</th><th>Rule / category</th><th>Subject</th><th>Seen by</th><th>Status</th></tr></thead><tbody id="detBody"></tbody></table></div><p class="note">Findings are retained up to 400 records per run; this table uses last-seen time within the chosen window. Rule silence and sensor loss can close findings in the existing simulator. Check coverage before interpreting closure.</p></div>
+    </section>
+    <section class="dash-page" id="dash-model" role="tabpanel" aria-labelledby="tab-model" hidden>
+      <div class="box"><h3>How this GPU compute cluster operates</h3><p class="dash-copy">“Mainframe” here means the simulated GPU hall. Each rack contains four independent GPU workers. The browser models compute, data movement and security events on a one-second clock; the diagram is a view of that state.</p></div>
+      <div class="workflow">
+        <article><h4>Admit a workload</h4><p>A scheduler assigns an approved job to available GPUs. Job ID and owner provide the authorization context. A busy GPU without a matching job needs investigation, including stale scheduler records.</p></article>
+        <article><h4>Stage the data</h4><p>The worker requests data from the private storage endpoint. PCIe moves data between host and device; VRAM holds tensors and working state. Capacity used and memory activity answer different questions.</p></article>
+        <article><h4>Compute and synchronize</h4><p>GPU kernels execute; workers exchange results over a local GPU interconnect or the network fabric. Fetch, compute, synchronization and checkpoint phases have different expected activity.</p></article>
+        <article><h4>Observe the hardware</h4><p>Collect temperature, board power, memory, clock state and error counters. Join device UUID, host, rack, job and timestamps. Here a generic 16 GiB / 300 W profile is illustrative, not a particular GPU specification.</p></article>
+        <article><h4>Correlate security evidence</h4><p>Compare approved jobs and peers with connection metadata, decoy hits and access logs. The temperature residual is a transparent formula; the browser does not run the repository's machine-learning models.</p></article>
+        <article><h4>Investigate and recover</h4><p>Distinguish cooling or link faults from workload misuse. Preserve the timeline, constrain access after review, validate artifacts, and verify recovery with new observations. A falling alert count alone is insufficient.</p></article>
+      </div>
+      <div class="box"><h3>Metric reading guide</h3><div class="tw"><table class="t"><thead><tr><th>Signal</th><th>What it tells you</th><th>Corroborating evidence / limitation</th></tr></thead><tbody>
+        <tr><td>GPU busy %, SM active %, DRAM active %</td><td>Device activity, multiprocessor activity and memory-interface activity.</td><td>Compare workload phases and application throughput. None is a direct measure of useful work or an attack verdict.</td></tr>
+        <tr><td>VRAM GiB / capacity</td><td>Memory allocated on the device, distinct from memory activity.</td><td>Check allocation failures, batch size and application memory growth. High allocation can be intentional.</td></tr>
+        <tr><td>Temperature, watts, MHz, clock reason</td><td>Thermal and power behavior with the current clock state.</td><td>Correlate with load and neighboring GPUs. Production limits are device-specific; this page's 85 °C / 300 W values are demo assumptions.</td></tr>
+        <tr><td>PCIe / NVLink RX and TX, GB/s</td><td>Transfer rate in each direction from the GPU's perspective.</td><td>Link throughput is not internet egress. Compare synchronization phase, retry deltas and topology. PCIe includes protocol overhead; NVLink profiling rates exclude headers.</td></tr>
+        <tr><td>Corrected / uncorrected ECC; PCIe replay deltas</td><td>Changes in hardware error counters within the evidence window.</td><td>Zero does not prove a healthy device. Preserve counter resets and sample gaps. Errors need hardware investigation, not automatic security attribution.</td></tr>
+        <tr><td>Unapproved peers, denied requests, cadence CV</td><td>Destination policy, enforcement and connection regularity.</td><td>CV = interval standard deviation / mean. Regular backups and monitoring can resemble beacons. Confirm process and job ownership.</td></tr>
+        <tr><td>Context residual and integrity events</td><td>A departure from the toy load curve or an artifact check result.</td><td>Neither identifies an attacker. Baselines need per-device/workload calibration; trusted manifests and keys must be protected.</td></tr>
+      </tbody></table></div></div>
+      <div class="two"><div class="box runbook"><h4>Connect real telemetry later</h4><p>DCGM Exporter → Prometheus for supported device fields; scheduler inventory for job ownership; Zeek for connections; OpenCanary for decoy contacts; application audit and protected manifests for data integrity.</p><p>On AWS, the corresponding design uses GPU metrics in CloudWatch, selected VPC/Zeek visibility, CloudTrail data events, and versioned S3 artifacts protected with IAM and KMS. None of those services is connected to this page.</p></div><div class="box runbook"><h4>Data contract and measurement limits</h4><p>One generated sample per device per simulated second. Fresh means age ≤3 simulated seconds. Fleet values omit older samples and display coverage. Trends retain 120 seconds; the heatmap retains 60.</p><p>Memory is GiB (2³⁰ bytes); network rates use MB/GB (10⁶/10⁹ bytes). Rates and event counts have separate units. Missing values remain unknown. Counter deltas require two observations and can be partial after an interruption.</p><p>Export includes the selected GPU, observations, filtered findings, related flows, global access events, active controls and simulation assumptions. It is a diagnostic snapshot, not a forensic chain of custody.</p></div></div>
+      <div class="source-links"><a href="https://docs.nvidia.com/datacenter/cloud-native/gpu-telemetry/latest/dcgm-exporter.html" target="_blank" rel="noopener">NVIDIA DCGM Exporter</a><a href="https://docs.nvidia.com/datacenter/dcgm/latest/learn/modules/profiling.html" target="_blank" rel="noopener">NVIDIA profiling metrics</a><a href="https://docs.nvidia.com/deploy/nvidia-smi/index.html" target="_blank" rel="noopener">NVIDIA hardware telemetry</a><a href="https://docs.nvidia.com/deploy/xid-errors/index.html" target="_blank" rel="noopener">Xid investigation reference</a><a href="https://docs.zeek.org/en/current/reference/logs/conn.html" target="_blank" rel="noopener">Zeek connection fields</a></div>
+    </section>
     </div>
-  </div>
 </dialog>
 
 <dialog id="rt" aria-labelledby="rtTitle">
@@ -291,8 +408,9 @@ tr.click { cursor: pointer; }
 "use strict";
 /* Sentinel Ops: a synthetic GPU mainframe, its network, its defenses, data pirates,
    and authorized testers, drawn with a small canvas 3D renderer (no libraries).
-   Everything is simulated in this page. Detection rules and thresholds mirror the
-   repository's lab rules; AWS names map to the proposal in docs/12, not to a deployment. */
+   Everything is simulated in this page. Core thresholds come from the lab, but
+   browser events and response behavior are simplified. AWS names map to docs/12,
+   not to a deployment. Extended hardware fields use an illustrative device profile. */
 
 // ---------------------------------------------------------------- helpers
 const $ = (id) => document.getElementById(id);
@@ -511,7 +629,7 @@ const sim = {
   totals: { lost: 0, lostWhat: [], blocked: 0, egressOkBytes: 0, dnsBlocked: 0, ttd: [], stolenGpuSeconds: 0 },
   scheduled: [],
 };
-const ui = { labels: true, traffic: true, defense: true, orbit: false, selected: null, card: null, tab: "live" };
+const ui = { labels: true, traffic: true, defense: true, orbit: false, selected: null, card: null, tab: "live", dashTab: "overview", evidenceWindow: 60 };
 
 function rackOrigin(r) {
   const row = Math.floor(r / 8), col = r % 8;
@@ -586,7 +704,7 @@ function pirateFor(subject) {
 
 // ---------------------------------------------------------------- traffic records
 function conn(src, dst, port, bytes, o = {}) {
-  const c = { t: sim.t + (o.dt || 0), src, dst, port, bytes, delivered: o.blockedBy ? 120 : bytes, blockedBy: o.blockedBy || null, kind: o.kind || "tcp", pirate: o.pirate ? o.pirate.id : null };
+  const c = { t: sim.t + (o.dt || 0), src, dst, port, bytes, delivered: o.blockedBy ? 0 : bytes, blockedBy: o.blockedBy || null, kind: o.kind || "tcp", pirate: o.pirate ? o.pirate.id : null, direction: o.direction || "outbound" };
   sim.conns.push(c);
   if (c.blockedBy) sim.totals.blocked++;
   return c;
@@ -625,7 +743,7 @@ function stepWorkload() {
     const size = Math.min(idle.length, pickOne([4, 4, 8, 8, 12]));
     const start = Math.floor(rand(0, idle.length - size + 1));
     const chosen = idle.slice(start, start + size);
-    const job = { id: `train-${String(++sim.jobSeq).padStart(4, "0")}`, nodes: chosen.map((n) => n.id), end: sim.t + rand(70, 200) };
+    const job = { id: `train-${String(++sim.jobSeq).padStart(4, "0")}`, owner: ["research", "forecasting", "platform"][sim.jobSeq % 3], start: sim.t, nodes: chosen.map((n) => n.id), end: sim.t + rand(70, 200) };
     chosen.forEach((n) => (n.job = job.id));
     sim.jobs.push(job);
     say(`Scheduler starts approved job ${job.id} on ${size} GPUs`, "ops");
@@ -659,14 +777,15 @@ function stepWorkload() {
     n.mem = sim.t < n.quarantinedUntil ? 0 : 800 + 85 * n.util + rand(-40, 40);
     n.expected = 42 + 0.3 * n.util;
     n.score = sim.t < n.quarantinedUntil ? 0 : (n.temp - n.expected) / 1.15;
-    n.hist.push(n.temp); if (n.hist.length > 60) n.hist.shift();
+    collectEngineeringSample(n);
+    n.hist.push(n.observed?.t === sim.t ? n.temp : null); if (n.hist.length > 60) n.hist.shift();
   }
 
   // Approved traffic: storage reads through the endpoint, API polling, all-reduce.
   for (const j of sim.jobs) {
     if (sim.t % 2 === 0) {
       const n = nodeById(pickOne(j.nodes));
-      if (n) { conn(n.id, "vpce-s3", 443, Math.round(rand(4e6, 8e6))); if (rng() < 0.5) send(reverse(pathSpineToData(PTS.endpoint)).concat(reverse(pathNodeToSpine(n)).slice(1)), C.blue, { r: 0.26 }); }
+      if (n && sim.t >= n.quarantinedUntil) { conn(n.id, "vpce-s3", 443, Math.round(rand(4e6, 8e6)), { direction: "inbound" }); if (rng() < 0.5) send(reverse(pathSpineToData(PTS.endpoint)).concat(reverse(pathNodeToSpine(n)).slice(1)), C.blue, { r: 0.26 }); }
     }
     if (rng() < 0.5 && j.nodes.length > 1) { const a = nodeById(pickOne(j.nodes)); if (a) send(pathNodeToSpine(a), C.teal, { r: 0.22 }); }
   }
@@ -674,11 +793,11 @@ function stepWorkload() {
 }
 
 // ---------------------------------------------------------------- detection engine
-// The same rules and thresholds as the repository's lab, evaluated every simulated second.
+// Lab-inspired rules, evaluated each simulated second against simplified browser events.
 function detect() {
   const t = sim.t;
   for (const n of sim.nodes) {
-    if (t < n.quarantinedUntil) continue;
+    if (t < n.quarantinedUntil || n.observed?.t !== t) continue;
     if (n.temp >= CFG.thermal) raise("thermal", n.id);
     if (n.util >= CFG.unapproved && !n.job) raise("unapproved-compute", n.id);
     if (Math.abs(n.score) >= CFG.contextZ && n.temp < CFG.thermal) raise("context-model", n.id);
@@ -705,7 +824,7 @@ function detect() {
   // compute-network-overlap: unapproved GPU use within 5 s of a large transfer from that node
   recent.filter((c) => c.t > t - CFG.corrSeconds && c.delivered >= CFG.transferBytes && !APPROVED_DEST.has(c.dst)).forEach((c) => {
     const n = nodeById(c.src);
-    if (n && n.util >= CFG.unapproved && !n.job) raise("compute-network-overlap", n.id);
+    if (n && n.observed?.t === t && n.util >= CFG.unapproved && !n.job) raise("compute-network-overlap", n.id);
   });
   // decoy contact and audit events
   sim.decoyHits.filter((h) => h.t === t).forEach((h) => raise("honeypot-contact", "decoy", { pirate: sim.pirates.find((p) => p.id === h.pirate) }));
@@ -732,8 +851,8 @@ function detect() {
     });
   }
   sim.conns = sim.conns.filter((c) => c.t > t - 130);
-  sim.audit = sim.audit.filter((a) => a.t > t - 5);
-  sim.decoyHits = sim.decoyHits.filter((h) => h.t > t - 5);
+  sim.audit = sim.audit.filter((a) => a.t > t - 130);
+  sim.decoyHits = sim.decoyHits.filter((h) => h.t > t - 130);
 }
 
 // ---------------------------------------------------------------- data pirates
@@ -1035,13 +1154,13 @@ function step() {
   sim.pirates = sim.pirates.filter((p) => p.phase !== "done" || sim.t - p.start < 400);
   detect();
   // Cluster history for charts.
-  const N = sim.nodes.length || 1;
-  const temps = sim.nodes.map((n) => n.temp).sort((a, b) => a - b);
+  const observed = sim.nodes.filter((n) => n.observed?.t === sim.t).map((n) => n.observed);
+  const temps = observed.map((n) => n.temp).sort((a, b) => a - b);
   const egress = sim.conns.filter((c) => c.t > sim.t - 1 && !APPROVED_DEST.has(c.dst) && c.kind === "tcp");
-  push(sim.hist.util, mean(sim.nodes.map((n) => n.util)));
-  push(sim.hist.tempMax, temps[temps.length - 1] || 0);
-  push(sim.hist.tempP50, temps[Math.floor(N / 2)] || 0);
-  push(sim.hist.power, sim.nodes.reduce((s, n) => s + n.power, 0) / 1000);
+  push(sim.hist.util, observed.length ? mean(observed.map((n) => n.util)) : null);
+  push(sim.hist.tempMax, temps.length ? temps[temps.length - 1] : null);
+  push(sim.hist.tempP50, temps.length ? median(temps) : null);
+  push(sim.hist.power, observed.length ? observed.reduce((s, n) => s + n.power, 0) / 1000 : null);
   push(sim.hist.egressOk, egress.filter((c) => !c.blockedBy).reduce((s, c) => s + c.delivered, 0) / 1e6);
   push(sim.hist.egressDenied, egress.filter((c) => c.blockedBy).length);
   ui.dirty = true;
@@ -1270,6 +1389,124 @@ function summaryText() {
 }
 
 // ---------------------------------------------------------------- dashboard
+const engineering = { condition: null, freshSeconds: 3, memoryMiB: 16384, powerLimitW: 300 };
+const JOB_PHASES = ["fetch", "compute", "synchronize", "checkpoint"];
+function jobPhase(job) {
+  if (!job) return "idle";
+  const age = (sim.t - job.start) % 60;
+  return JOB_PHASES[age < 8 ? 0 : age < 43 ? 1 : age < 55 ? 2 : 3];
+}
+function collectEngineeringSample(n) {
+  if (engineering.condition && sim.t >= engineering.condition.until) engineering.condition = null;
+  const condition = engineering.condition?.node === n.id ? engineering.condition.type : null;
+  n.telemetry ||= { eccCorrected: 0, eccUncorrected: 0, replays: 0, samples: [] };
+  if (condition === "gap") return;
+  const job = sim.jobs.find((j) => j.id === n.job);
+  const quarantine = sim.t < n.quarantinedUntil;
+  const phase = quarantine ? "isolated" : jobPhase(job);
+  const wave = Math.sin(sim.t * 0.7 + n.rack * 2 + n.slot);
+  if (!quarantine && condition === "thermal") n.temp += 22;
+  if (!quarantine && condition === "memory") n.mem = 15600 + wave * 170;
+  n.score = quarantine ? 0 : (n.temp - n.expected) / 1.15;
+  const thermalLimit = !quarantine && n.temp >= 80;
+  const fabricFault = !quarantine && condition === "fabric";
+  if (!quarantine && condition === "ecc" && sim.t % 5 === 0) n.telemetry.eccCorrected += 2;
+  if (fabricFault) n.telemetry.replays += 5;
+  const compute = phase === "compute" || !!n.hijackedBy;
+  const sm = quarantine ? 0 : clamp(n.util * (fabricFault ? 0.18 : compute ? 0.86 : 0.36) + wave * 3, 0, 100);
+  const dram = quarantine ? 0 : clamp(n.util * (condition === "memory" ? 0.98 : compute ? 0.66 : 0.3) + wave * 2, 0, 100);
+  const clocks = quarantine ? 210 : thermalLimit ? 720 : n.util < 30 ? 450 : 1410;
+  const pcieRx = quarantine ? 0 : (phase === "fetch" ? 9 : 0.6) * (1 + wave * 0.04);
+  const pcieTx = quarantine ? 0 : (phase === "checkpoint" ? 7 : 0.3) * (1 - wave * 0.04);
+  const nv = quarantine || !job ? 0 : (phase === "synchronize" ? 85 : 6) * (fabricFault ? 0.08 : 1);
+  const sample = {
+    t: sim.t, id: n.id, rack: n.rack, job: n.job, owner: job?.owner || null, phase,
+    util: n.util, temp: n.temp, expected: n.expected, score: n.score, power: n.power,
+    memMiB: n.mem, sm, dram, clocks, clockReason: quarantine ? "isolated / idle" : thermalLimit ? "thermal limit (demo)" : n.util < 30 ? "idle" : "none",
+    pcieRx, pcieTx, nvRx: nv * (1 + wave * 0.03), nvTx: nv * (1 - wave * 0.03),
+    eccCorrected: n.telemetry.eccCorrected, eccUncorrected: n.telemetry.eccUncorrected, replays: n.telemetry.replays,
+    quarantined: quarantine,
+  };
+  n.observed = sample;
+  n.telemetry.samples.push(sample);
+  n.telemetry.samples = n.telemetry.samples.filter((s) => s.t >= sim.t - 120);
+}
+const fresh = (n) => !!n.observed && sim.t - n.observed.t <= engineering.freshSeconds;
+const visibleSamples = (n) => (n.telemetry?.samples || []).filter((s) => s.t > sim.t - ui.evidenceWindow);
+const recentRecords = (records) => records.filter((r) => r.t > sim.t - ui.evidenceWindow && r.t <= sim.t);
+const number = (v, digits = 1) => v == null || !Number.isFinite(v) ? "—" : v.toFixed(digits);
+const percentile = (a, p) => a.length ? a.slice().sort((x, y) => x - y)[Math.max(0, Math.ceil(a.length * p) - 1)] : null;
+const total = (a, field) => a.reduce((s, x) => s + x[field], 0);
+function counterDelta(n, field) {
+  const a = visibleSamples(n);
+  return a.length < 2 ? null : Math.max(0, a[a.length - 1][field] - a[0][field]);
+}
+function needsAttention(n) {
+  const s = n.observed;
+  return !fresh(n) || s.temp >= 85 || Math.abs(s.score) >= 4 || (!s.job && !s.quarantined && s.util >= 70) || s.memMiB / engineering.memoryMiB > 0.9 || counterDelta(n, "replays") > 0 || counterDelta(n, "eccCorrected") > 0;
+}
+function metric(label, value, note, attention = false) {
+  return `<div class="metric${attention ? " attention" : ""}"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(note)}</small></div>`;
+}
+function detailList(entries) {
+  return `<dl>${entries.map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join("")}</dl>`;
+}
+function selectedNode() { return nodeById(ui.selected) || sim.nodes[0]; }
+function relevantFindings() {
+  const selected = selectedNode();
+  return sim.findings.filter((f) => f.last > sim.t - ui.evidenceWindow && ($("findingScope").value !== "gpu" || f.subject === selected.id) && ($("findingState").value === "all" || f.status === $("findingState").value));
+}
+function setDashTab(name) {
+  ui.dashTab = name;
+  document.querySelectorAll("[data-dash-tab]").forEach((b) => { const active = b.dataset.dashTab === name; b.setAttribute("aria-selected", active); b.tabIndex = active ? 0 : -1; });
+  document.querySelectorAll(".dash-page").forEach((p) => (p.hidden = p.id !== `dash-${name}`));
+  renderDash();
+}
+document.querySelectorAll("[data-dash-tab]").forEach((button) => {
+  button.onclick = () => setDashTab(button.dataset.dashTab);
+  button.onkeydown = (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const tabs = [...document.querySelectorAll("[data-dash-tab]")];
+    const i = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (tabs.indexOf(button) + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    tabs[i].focus(); setDashTab(tabs[i].dataset.dashTab);
+  };
+});
+$('inspectGpu').onchange = (event) => { ui.selected = event.target.value; renderDash(); };
+$('evidenceWindow').onchange = (event) => { ui.evidenceWindow = +event.target.value; renderDash(); };
+['nodeFilter', 'findingScope', 'findingState'].forEach((id) => ($(id).onchange = renderDash));
+function togglePause() {
+  sim.paused = !sim.paused;
+  $("pause").setAttribute("aria-pressed", sim.paused);
+  $("pause").textContent = sim.paused ? "Resume" : "Pause";
+  renderDash();
+}
+$("dashPause").onclick = togglePause;
+$("runDiagnostic").onclick = () => {
+  const n = selectedNode();
+  engineering.condition = { type: $("diagnosticScenario").value, node: n.id, started: sim.t, until: sim.t + 30 };
+  say(`Diagnostic condition: ${engineering.condition.type} on ${n.id} for 30 simulation seconds`, "ops");
+  renderDash();
+};
+$("stopDiagnostic").onclick = () => { engineering.condition = null; renderDash(); };
+function evidenceSnapshot() {
+  const n = selectedNode();
+  return {
+    schema: "sentinel-ops-evidence/v1", source: "browser simulation", simulationTimeSeconds: sim.t,
+    windowSeconds: ui.evidenceWindow, gpu: n.id, fresh: fresh(n), sampleAgeSeconds: n.observed ? sim.t - n.observed.t : null,
+    assumptions: { memoryCapacityMiB: engineering.memoryMiB, boardPowerLimitW: engineering.powerLimitW, freshSeconds: engineering.freshSeconds, rates: "decimal GB/s, MB/s", memory: "MiB / GiB", counts: "counter deltas need two samples; gaps can make windows partial", integrity: "unsigned diagnostic snapshot" },
+    observations: visibleSamples(n), relatedConnections: recentRecords(sim.conns).filter((c) => c.src === n.id || c.dst === n.id),
+    findingFilters: { scope: $("findingScope").value, state: $("findingState").value }, findings: relevantFindings(),
+    globalAccessEvents: recentRecords(sim.audit), controls: { ...defenseOn }, diagnosticCondition: engineering.condition && { ...engineering.condition },
+  };
+}
+$("exportEvidence").onclick = () => {
+  const snapshot = evidenceSnapshot();
+  const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" }));
+  const a = document.createElement("a"); a.href = url; a.download = `sentinel-${snapshot.gpu}-${sim.t}s.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 function chart(canvas, series, o) {
   const r = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = Math.max(1, r.width * dpr); canvas.height = Math.max(1, r.height * dpr);
@@ -1285,24 +1522,24 @@ function chart(canvas, series, o) {
     const n = s.data.length; if (n < 2) return;
     const x = (i) => padL + (i / 119) * (w - padL);
     const off = 120 - n;
-    if (s.fill) { g.beginPath(); g.moveTo(x(off), h - padB); s.data.forEach((v, i) => g.lineTo(x(off + i), y(v))); g.lineTo(x(off + n - 1), h - padB); g.closePath(); g.fillStyle = s.fill; g.fill(); }
-    g.beginPath(); s.data.forEach((v, i) => (i ? g.lineTo(x(off + i), y(v)) : g.moveTo(x(off + i), y(v)))); g.strokeStyle = s.color; g.lineWidth = 1.6; g.stroke();
-    g.fillStyle = s.color; g.beginPath(); g.arc(x(off + n - 1), y(s.data[n - 1]), 2.6, 0, 7); g.fill();
+    if (s.fill && s.data.every((v) => v != null)) { g.beginPath(); g.moveTo(x(off), h - padB); s.data.forEach((v, i) => g.lineTo(x(off + i), y(v))); g.lineTo(x(off + n - 1), h - padB); g.closePath(); g.fillStyle = s.fill; g.fill(); }
+    g.beginPath(); let pen = false; s.data.forEach((v, i) => { if (v == null) { pen = false; return; } if (pen) g.lineTo(x(off + i), y(v)); else g.moveTo(x(off + i), y(v)); pen = true; }); g.strokeStyle = s.color; g.lineWidth = 1.6; g.stroke();
+    if (s.data[n - 1] != null) { g.fillStyle = s.color; g.beginPath(); g.arc(x(off + n - 1), y(s.data[n - 1]), 2.6, 0, 7); g.fill(); }
   });
 }
-function renderDash() {
+function renderOverview() {
   const H = sim.hist, N = sim.nodes.length;
-  $("dashSub").textContent = `${N} GPUs in ${sim.racks} racks · ${sim.jobs.length} approved jobs · streaming synthetic telemetry at ${clock(sim.t)}`;
-  $("cU").textContent = `${(H.util.slice(-1)[0] || 0).toFixed(0)}%`;
-  $("cT").textContent = `${(H.tempP50.slice(-1)[0] || 0).toFixed(0)} / ${(H.tempMax.slice(-1)[0] || 0).toFixed(0)} °C`;
-  $("cP").textContent = `${(H.power.slice(-1)[0] || 0).toFixed(1)} kW`;
-  $("cE").textContent = `${(H.egressOk.slice(-1)[0] || 0).toFixed(1)} MB/s · ${H.egressDenied.slice(-1)[0] || 0} denied`;
-  chart($("chU"), [{ data: H.util, color: "#3ec1b0", fill: "rgba(62,193,176,.12)" }], { min: 0, max: 100, threshold: 70 });
+  $("cU").textContent = `${number(H.util.at(-1), 0)}%`;
+  $("cT").textContent = `${number(H.tempP50.at(-1), 0)} / ${number(H.tempMax.at(-1), 0)} °C`;
+  $("cP").textContent = `${number(H.power.at(-1))} kW`;
+  $("cE").textContent = `${number(H.egressOk.at(-1), 2)} MB/s`;
+  $("deniedCaption").textContent = `${H.egressDenied.at(-1) || 0} denied TCP events in the last simulated second; not on the rate axis.`;
+  chart($("chU"), [{ data: H.util, color: "#3ec1b0", fill: "rgba(62,193,176,.12)" }], { min: 0, max: 100 });
   chart($("chT"), [{ data: H.tempP50, color: "#6c9cff" }, { data: H.tempMax, color: "#f2a93b" }], { min: 30, max: 100, threshold: 85 });
   const pmax = Math.max(1, ...H.power) * 1.2;
   chart($("chP"), [{ data: H.power, color: "#d36cf0", fill: "rgba(211,108,240,.1)" }], { min: 0, max: Math.ceil(pmax) });
-  const emax = Math.max(4, ...H.egressOk, ...H.egressDenied) * 1.2;
-  chart($("chE"), [{ data: H.egressOk, color: "#ff6b6b", fill: "rgba(255,107,107,.1)" }, { data: H.egressDenied, color: "#4fd18f" }], { min: 0, max: Math.ceil(emax) });
+  const emax = Math.max(1, ...H.egressOk) * 1.2;
+  chart($("chE"), [{ data: H.egressOk, color: "#ff6b6b", fill: "rgba(255,107,107,.1)" }], { min: 0, max: Math.ceil(emax) });
   // heatmap
   const hc = $("heat"), r = hc.getBoundingClientRect();
   hc.width = 60; hc.height = Math.max(1, N);
@@ -1316,19 +1553,166 @@ function renderDash() {
   });
   g.putImageData(img, 0, 0);
   hc.style.height = `${Math.min(300, Math.max(120, N * 2.4))}px`;
-  // detections
-  const shown = sim.findings.slice(0, 40);
-  $("detCount").textContent = `${sim.findings.filter((f) => f.status === "open").length} open · ${sim.findings.length} total`;
-  $("detBody").innerHTML = shown.map((f) => `<tr><td class="mono">${clock(f.t)}</td><td title="${esc(f.aws)}"><span class="pill p-${f.cat}">${esc(f.cat === "ctx" ? "context" : f.cat === "op" ? "operational" : f.cat === "inv" ? "investigate" : "security")}</span> ${esc(f.title)}<div class="note mono">${esc(f.rule)}</div></td><td class="mono">${esc(f.subject)}</td><td title="${esc(f.aws)}">${esc(DEFENSES.find((d) => d.id === f.sensor)?.name || f.sensor)}</td><td>${f.authorized ? '<span class="pill p-rt">authorized test</span>' : esc(f.status)}</td></tr>`).join("") || '<tr><td colspan="5" class="note">No detections yet. Quiet is a valid answer.</td></tr>';
-  // node table
-  const rows = sim.nodes.slice().sort((a, b) => Math.abs(b.score) - Math.abs(a.score)).slice(0, 128);
-  $("nodeBody").innerHTML = rows.map((n) => {
-    const st = sim.t < n.quarantinedUntil ? "quarantined" : n.hijackedBy ? "hijacked" : n.temp >= 85 ? "hot" : n.job ? "job" : "ok";
-    const stText = { quarantined: "quarantined", hijacked: "no approved job", hot: "over 85 °C", job: "approved", ok: "idle" }[st];
-    return `<tr class="click${ui.selected === n.id ? " sel" : ""}" data-node="${n.id}"><td class="mono">${n.id}</td><td class="n">${n.rack}</td><td class="mono">${n.job || "none"}</td><td class="n">${n.util.toFixed(0)}</td><td class="n">${n.temp.toFixed(1)}</td><td class="n">${n.expected.toFixed(1)}</td><td class="n" style="color:${Math.abs(n.score) >= 4 ? "var(--blue)" : "inherit"}">${n.score.toFixed(1)}</td><td class="n">${n.power.toFixed(0)}</td><td class="n">${n.mem.toFixed(0)}</td><td><span class="state s-${st}">${stText}</span></td></tr>`;
+  renderClusterMetrics();
+}
+$("nodeBody").addEventListener("click", (e) => { const button = e.target.closest("button[data-node]"); if (!button) return; ui.selected = button.dataset.node; const n = nodeById(ui.selected); if (n) flyTo(P(n.x + 1.3, 3, n.z), 46); renderDash(); });
+
+function renderDash() {
+  const n = selectedNode();
+  if (!n) return;
+  ui.selected = n.id;
+  if ($("inspectGpu").options.length !== sim.nodes.length) $("inspectGpu").innerHTML = sim.nodes.map((gpu) => `<option value="${gpu.id}">${gpu.id} · rack ${gpu.rack}</option>`).join("");
+  $("inspectGpu").value = n.id;
+  const received = sim.nodes.filter(fresh).length;
+  $("dashSub").textContent = `${sim.nodes.length} GPUs · ${sim.racks} racks · ${sim.jobs.length} approved jobs · ${clock(sim.t)} · ${sim.paused ? "paused" : `${sim.speed}× simulation speed`}`;
+  $("dashPause").textContent = sim.paused ? "Resume simulation" : "Pause simulation";
+  $("dashPause").setAttribute("aria-pressed", sim.paused);
+  $("telemetryStatus").classList.toggle("gap", received < sim.nodes.length);
+  $("telemetryStatus").textContent = `${sim.paused ? "PAUSED · " : "SYNTHETIC · "}${received}/${sim.nodes.length} GPUs have telemetry ≤3 simulation seconds old. Selected device: ${n.observed ? `${sim.t - n.observed.t}s old` : "no sample"}. ${received < sim.nodes.length ? "Missing devices are excluded from fleet metrics; last-known values are labeled." : "One sample per GPU per simulation second."} Trends use 120s; evidence uses ${ui.evidenceWindow}s.`;
+  const condition = engineering.condition;
+  $("stopDiagnostic").disabled = !condition;
+  $("diagnosticStatus").textContent = condition ? `${condition.type} on ${condition.node} · ${Math.max(0, condition.until - sim.t)} simulated seconds remaining${sim.paused ? " · resume to advance" : ""}. All changes are synthetic.` : "No controlled condition active. Error counters persist after recovery; use window deltas to distinguish past errors from new ones.";
+  if (ui.dashTab === "overview") renderOverview();
+  if (ui.dashTab === "hardware") renderHardware(n);
+  if (ui.dashTab === "network") renderNetwork(n);
+  if (ui.dashTab === "triage") renderInvestigation(n);
+}
+function renderClusterMetrics() {
+  const nodes = sim.nodes.filter(fresh), samples = nodes.map((n) => n.observed), count = samples.length;
+  const busyUnapproved = samples.filter((s) => s.util >= 70 && !s.job && !s.quarantined).length;
+  const allocated = samples.filter((s) => s.job && !s.quarantined).length;
+  const hot = samples.filter((s) => s.temp >= 85).length;
+  const capacity = count * engineering.memoryMiB;
+  const open = sim.findings.filter((f) => f.status === "open");
+  $("clusterMetrics").innerHTML =
+    metric("Fresh devices", `${count} / ${sim.nodes.length}`, "Expected inventory vs samples ≤3s old", count !== sim.nodes.length) +
+    metric("Assigned to approved jobs", `${allocated} / ${count}`, "Fresh, non-isolated GPUs with a job") +
+    metric("Busy without approved job", count ? String(busyUnapproved) : "—", "Busy ≥70%; verify scheduler context", busyUnapproved > 0) +
+    metric("GPU busy time · fleet p95", `${number(percentile(samples.map((s) => s.util), 0.95), 0)}%`, "Across fresh GPUs now, not a time percentile") +
+    metric("VRAM allocated", count ? `${number(total(samples, "memMiB") / 1024)} GiB` : "—", `${number(capacity / 1024, 0)} GiB observed capacity; not bandwidth`) +
+    metric("Above thermal alert", count ? String(hot) : "—", "Current temperature ≥85 °C", hot > 0) +
+    metric("GPU power / configured caps", count ? `${number(total(samples, "power") / (count * engineering.powerLimitW) * 100, 0)}%` : "—", "300 W demo cap per observed GPU; not PUE") +
+    metric("Open findings", String(open.length), `${open.filter((f) => f.cat === "sec").length} security · ${open.filter((f) => f.cat !== "sec").length} operational / investigate / context`, open.length > 0);
+  const attention = [];
+  if (count < sim.nodes.length) attention.push(`${sim.nodes.length - count} GPU(s) have missing telemetry. Investigate collection before interpreting quiet charts.`);
+  if (hot) attention.push(`${hot} GPU(s) exceed the lab temperature alert. Compare same-rack peers and clock reasons.`);
+  if (busyUnapproved) attention.push(`${busyUnapproved} busy GPU(s) lack an approved job in the latest sample. Check job transitions and identity.`);
+  const errors = nodes.filter((n) => counterDelta(n, "replays") > 0 || counterDelta(n, "eccCorrected") > 0);
+  if (errors.length) attention.push(`${errors.length} GPU(s) have hardware counter increases in ${ui.evidenceWindow}s. Compare recent samples to see whether errors are still increasing.`);
+  const memory = samples.filter((s) => s.memMiB / engineering.memoryMiB > 0.9);
+  if (memory.length) attention.push(`${memory.length} GPU(s) use more than 90% of demo VRAM capacity. Check allocation failures and batch size.`);
+  const residual = samples.filter((s) => Math.abs(s.score) >= 4);
+  if (residual.length) attention.push(`${residual.length} GPU(s) deviate from the toy load / temperature curve. A residual is context, not a verdict.`);
+  $("attentionList").innerHTML = (attention.length ? attention : ["No current hardware or authorization thresholds crossed in fresh GPU samples. Review network findings and coverage separately."]).map((s) => `<p>${esc(s)}</p>`).join("");
+  $("rackMetrics").innerHTML = Array.from({ length: sim.racks }, (_, i) => {
+    const rack = samples.filter((s) => s.rack === i + 1);
+    const watts = total(rack, "power");
+    return `<div class="rack-item"><b>Rack ${pad(i + 1)} · ${rack.length}/4 fresh</b><meter min="0" max="1200" value="${watts}" aria-label="Rack ${i + 1} observed GPU watts">${number(watts, 0)} W</meter><small>${number(watts, 0)} / 1200 W GPU caps</small><small>max ${number(rack.length ? Math.max(...rack.map((s) => s.temp)) : null)} °C · ${rack.filter((s) => s.job).length} assigned</small></div>`;
   }).join("");
 }
-$("nodeBody").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-node]"); if (!tr) return; ui.selected = tr.dataset.node; const n = nodeById(ui.selected); if (n) { flyTo(P(n.x + 1.3, 3, n.z), 46); } renderDash(); });
+function renderHardware(n) {
+  const s = n.observed;
+  const timeline = new Map((n.telemetry?.samples || []).map((sample) => [sample.t, sample]));
+  const history = (field) => Array.from({ length: 120 }, (_, i) => timeline.get(sim.t - 119 + i)?.[field] ?? null);
+  chart($("deviceActivity"), [{ data: history("util"), color: "#3ec1b0" }, { data: history("sm"), color: "#6c9cff" }, { data: history("dram"), color: "#f2a93b" }], { min: 0, max: 100 });
+  chart($("deviceTemperature"), [{ data: history("temp"), color: "#f2a93b" }, { data: history("expected"), color: "#6c9cff" }], { min: 20, max: 110, threshold: 85 });
+  $("gpuDetailTitle").textContent = `${n.id} · rack ${n.rack} · slot ${n.slot + 1}${fresh(n) ? "" : " · LAST KNOWN / STALE"}`;
+  if (s) {
+    $("gpuContext").textContent = `${s.quarantined ? "Isolated" : s.job ? `${s.job} / ${s.owner}` : "No approved job"} · ${s.phase} phase · sample ${clock(s.t)}. Simulated 16 GiB GPU, 300 W board cap. SM and memory activity follow the workload phase; the hardware profile is illustrative.`;
+    const delta = (field) => number(counterDelta(n, field), 0);
+    $("gpuDetails").innerHTML = detailList([
+      ["GPU busy / SM active / DRAM active", `${number(s.util)}% / ${number(s.sm)}% / ${number(s.dram)}%`],
+      ["VRAM used / capacity", `${number(s.memMiB / 1024, 2)} / 16 GiB (${number(s.memMiB / engineering.memoryMiB * 100, 0)}%)`],
+      ["Temperature / load expectation", `${number(s.temp)} / ${number(s.expected)} °C`],
+      ["Context residual", `${number(s.score, 2)} z · heuristic only`],
+    ]) + detailList([
+      ["Board power / configured cap", `${number(s.power, 0)} / 300 W`], ["SM clock", `${s.clocks} MHz`], ["Clock reason", s.clockReason],
+      ["PCIe RX / TX", `${number(s.pcieRx, 2)} / ${number(s.pcieTx, 2)} GB/s`], ["NVLink RX / TX", `${number(s.nvRx, 2)} / ${number(s.nvTx, 2)} GB/s`],
+    ]) + detailList([
+      [`Corrected ECC · Δ ${ui.evidenceWindow}s / session`, `${delta("eccCorrected")} / ${s.eccCorrected} errors`],
+      [`Uncorrected ECC · Δ ${ui.evidenceWindow}s / session`, `${delta("eccUncorrected")} / ${s.eccUncorrected} errors`],
+      [`PCIe replays · Δ ${ui.evidenceWindow}s / session`, `${delta("replays")} / ${s.replays} retries`],
+      ["Samples / requested window", `${visibleSamples(n).length} / ${ui.evidenceWindow} (partial if fewer)`],
+      ["Driver Xid events", "Not collected in this simulation"],
+    ]);
+  } else { $("gpuContext").textContent = "Awaiting the first telemetry sample."; $("gpuDetails").innerHTML = ""; }
+  const rows = sim.nodes.filter((gpu) => {
+    const sample = gpu.observed, filter = $("nodeFilter").value;
+    if (filter === "stale") return !fresh(gpu);
+    if (filter === "attention") return needsAttention(gpu);
+    if (filter === "unapproved") return fresh(gpu) && sample.util >= 70 && !sample.job && !sample.quarantined;
+    return true;
+  }).sort((a, b) => Number(needsAttention(b)) - Number(needsAttention(a)) || a.id.localeCompare(b.id, undefined, { numeric: true }));
+  $("nodeCount").textContent = `${rows.length} of ${sim.nodes.length} GPUs · attention first`;
+  $("nodeBody").innerHTML = rows.map((gpu) => {
+    const sample = gpu.observed;
+    return `<tr class="${gpu.id === n.id ? "sel" : ""}"><td><button class="row-action" data-node="${gpu.id}" aria-label="Inspect ${gpu.id}">${gpu.id}</button></td><td>${gpu.rack}</td><td>${esc(sample?.job || "none")}${sample?.quarantined ? " · isolated" : ""}</td><td class="n">${number(sample?.util, 0)}</td><td class="n">${number(sample?.temp)}</td><td class="n">${number(sample?.expected)}</td><td class="n">${number(sample?.score)}</td><td class="n">${number(sample?.power, 0)}</td><td class="n">${number(sample ? sample.memMiB / 1024 : null, 2)}</td><td>${sample ? `${sim.t - sample.t}s` : "no sample"}${fresh(gpu) ? "" : ' <span class="pill p-gap">stale</span>'}</td></tr>`;
+  }).join("") || '<tr><td colspan="10">No GPUs match this filter.</td></tr>';
+  $("jobBody").innerHTML = sim.jobs.map((j) => {
+    const observed = j.nodes.map(nodeById).filter((gpu) => gpu && fresh(gpu) && gpu.observed.job === j.id).map((gpu) => gpu.observed);
+    return `<tr><td>${esc(j.id)}<div class="note">${esc(j.owner)}</div></td><td>${jobPhase(j)}</td><td>${j.nodes.length} assigned · ${observed.length} sampled</td><td class="n">${number(observed.length ? mean(observed.map((s) => s.util)) : null)}</td><td>${Math.max(0, Math.ceil(j.end - sim.t))}s</td></tr>`;
+  }).join("") || '<tr><td colspan="5">No active approved jobs.</td></tr>';
+}
+function payloadBytes(c) { return c.kind === "tcp" && !c.blockedBy ? c.delivered : 0; }
+function cadence(records) {
+  const times = records.map((c) => c.t).sort((a, b) => a - b).slice(-10);
+  if (times.length < 6) return `${times.length}/6 samples; insufficient`;
+  const gaps = times.slice(1).map((t, i) => t - times[i]);
+  if (gaps.some((gap) => gap <= 0)) return "overlapping events; no CV";
+  return `mean ${number(mean(gaps))}s · CV ${number(pstdev(gaps) / mean(gaps), 2)}`;
+}
+function renderNetwork(n) {
+  const all = recentRecords(sim.conns), records = all.filter((c) => c.src === n.id || c.dst === n.id);
+  const elapsed = Math.max(1, Math.min(ui.evidenceWindow, sim.t));
+  const incoming = records.filter((c) => c.src !== n.id || c.direction === "inbound");
+  const outgoing = records.filter((c) => c.src === n.id && c.direction === "outbound");
+  const sumPayload = (a) => a.reduce((sum, c) => sum + payloadBytes(c), 0);
+  const unapproved = outgoing.filter((c) => !APPROVED_DEST.has(c.dst));
+  const peers = new Set(unapproved.map((c) => c.dst));
+  const audit = recentRecords(sim.audit);
+  $("networkMetrics").innerHTML =
+    metric("Selected GPU · inbound", `${number(sumPayload(incoming) / elapsed / 1e6, 3)} MB/s`, `Mean payload rate over ${elapsed}s; includes storage responses`) +
+    metric("Selected GPU · outbound", `${number(sumPayload(outgoing) / elapsed / 1e6, 3)} MB/s`, `Mean payload rate over ${elapsed}s; excludes denied attempts`) +
+    metric("Unapproved peers contacted", String(peers.size), `${unapproved.length} outbound events; attempts included`, peers.size > 0) +
+    metric("Selected GPU · denied events", String(records.filter((c) => c.blockedBy).length), `Count in ${ui.evidenceWindow}s; not bytes or a rate`, records.some((c) => c.blockedBy)) +
+    metric("Cluster · decoy contacts", String(recentRecords(sim.decoyHits).length), `Recorded in ${ui.evidenceWindow}s; consult sensor coverage`) +
+    metric("Cluster · access denials", String(audit.filter((a) => a.decision === "deny").length), "Global synthetic API audit, not GPU process identity") +
+    metric("Cluster · integrity failures", String(audit.filter((a) => a.decision === "integrity").length), "A recorded mismatch, not proof of who changed a file", audit.some((a) => a.decision === "integrity")) +
+    metric("Cluster · out-of-pipeline writes", String(audit.filter((a) => a.decision === "unusual-write").length), "Review writer identity and approved artifact version");
+  const groups = new Map();
+  for (const c of records) {
+    const peer = c.src === n.id ? c.dst : c.src;
+    const direction = c.src === n.id ? c.direction : "inbound";
+    const key = `${peer}|${c.port}|${c.kind}|${direction}`;
+    if (!groups.has(key)) groups.set(key, { peer, direction, port: c.port, kind: c.kind, records: [] });
+    groups.get(key).records.push(c);
+  }
+  $("peerTitle").textContent = `${n.id} · connections in last ${ui.evidenceWindow}s`;
+  $("peerBody").innerHTML = [...groups.values()].sort((a, b) => b.records.length - a.records.length).map((g) => `<tr><td class="mono">${esc(g.peer)}:${g.port}<div class="note">${esc(g.kind)} · ${APPROVED_DEST.has(g.peer) ? "approved peer" : "unapproved / unknown peer"}</div></td><td>${g.direction}</td><td class="n">${g.records.length}</td><td class="n">${mb(sumPayload(g.records))}</td><td class="n">${g.records.filter((c) => c.blockedBy).length}</td><td>${cadence(g.records)}</td></tr>`).join("") || '<tr><td colspan="6">No connection events for this GPU in the selected window. This does not establish collection health.</td></tr>';
+  $("auditCount").textContent = `cluster scope · ${audit.length} events / ${ui.evidenceWindow}s`;
+  $("auditBody").innerHTML = audit.slice().reverse().map((a) => `<tr><td class="mono">${clock(a.t)}</td><td>${esc(a.actor)}</td><td>${esc(a.action)}<div class="note">${esc(a.resource)}</div></td><td>${esc(a.decision)}</td></tr>`).join("") || '<tr><td colspan="4">No API audit events recorded in this window.</td></tr>';
+  $("dataControls").textContent = `Modeled controls: API audit ${defenseOn.cloudtrail ? "enabled" : "disabled"}; artifact protection ${defenseOn.objectlock ? "enabled" : "disabled"}; data perimeter ${defenseOn.perimeter ? "enabled" : "disabled"}. Simulator records remain inspectable even when a modeled detector is disabled.`;
+  $("sensorCoverage").innerHTML = detailList([["GPU sampling", `${sim.nodes.filter(fresh).length}/${sim.nodes.length} fresh`], ["Selected device", n.observed ? `${sim.t - n.observed.t}s old` : "unknown"], ["Device rule evaluator", defenseOn.rules ? "enabled" : "disabled — detection gap"]]) +
+    detailList([["Zeek / flow rule model", defenseOn.rules ? "enabled — synthetic events" : "disabled — detection gap"], ["Decoy detection model", defenseOn.decoy ? "enabled" : "disabled — detection gap"], ["Managed detection model", defenseOn.guardduty ? "enabled — compressed delay" : "disabled"]]) +
+    detailList([["API audit detection model", defenseOn.cloudtrail ? "enabled" : "disabled — detection gap"], ["Physical capture loss", "unknown / not collected"], ["Ingest delay / clock skew", "unknown / not collected"]]);
+}
+function renderInvestigation(n) {
+  const s = n.observed, items = [];
+  const add = (title, evidence, alternatives, next) => items.push(`<h4>${esc(title)}</h4><p><b>Evidence:</b> ${esc(evidence)}</p><p><b>Check alternatives:</b> ${esc(alternatives)}</p><p><b>Next:</b> ${esc(next)}</p>`);
+  if (!fresh(n)) add("Restore observation first", s ? `Latest sample is ${sim.t - s.t}s old; expected age ≤3s.` : "No sample received.", "Collector pause, endpoint failure, clock skew or exporter restart can hide activity.", "Check scrape and ingestion health. Preserve the last valid timestamp; do not fill gaps with zero.");
+  if (fresh(n) && s.temp >= 85) add("Thermal excursion", `${number(s.temp)} °C versus ${number(s.expected)} °C expected for ${number(s.util)}% busy; clock reason: ${s.clockReason}.`, "Cooling loss, blocked airflow, inlet temperature, sensor error or a legitimate workload change.", "Compare rack peers, cooling telemetry and manufacturer limits. Coordinate with facilities and the workload owner.");
+  else if (fresh(n) && Math.abs(s.score) >= 4) add("Load-conditioned temperature deviation", `Residual ${number(s.score, 2)} with ${number(s.temp)} °C temperature and ${number(s.util)}% busy.`, "This simple linear curve may be wrong for a different GPU, workload phase or ambient temperature.", "Validate a baseline on comparable devices and phases before escalating. Do not convert z into a breach probability.");
+  if (fresh(n) && s.memMiB > engineering.memoryMiB * 0.9) add("VRAM pressure", `${number(s.memMiB / 1024, 2)} / 16 GiB allocated; DRAM activity ${number(s.dram)}%.`, "Batch growth, caching or an allocation leak can all consume memory. Capacity and activity are different signals.", "Check application OOM events, batch size, allocator history and request latency. Host logs are not collected here.");
+  if (counterDelta(n, "replays") > 0) add("Interconnect reliability", `${counterDelta(n, "replays")} PCIe replay increments in the window; ${s ? number(s.nvRx, 2) : "—"} GB/s NVLink RX in the latest sample.`, "PCIe replays and NVLink throughput are separate measurements; the demo injects both. Low throughput alone may be an idle phase.", "Compare link counters over time, topology and synchronized peers. Inspect PCIe/AER and fabric logs to establish the fault location.");
+  if (counterDelta(n, "eccCorrected") > 0) add("Corrected memory errors", `${counterDelta(n, "eccCorrected")} corrected ECC increments in the window; session count ${s.eccCorrected}.`, "Corrected errors are reliability evidence; they do not establish data theft or malicious execution.", "Check whether the counter continues rising, inspect uncorrected errors and driver events, and follow the device-specific maintenance policy.");
+  if (fresh(n) && s.util >= 70 && !s.job && !s.quarantined) add("Compute authorization mismatch", `${number(s.util)}% busy with no approved job in the same sample.`, "A recently finished job, scheduler lag, authorized maintenance or unauthorized compute can create this pattern.", "Join the device UUID to job history and host process/container identity, then check unapproved peers. The browser has no process attribution.");
+  const linked = recentRecords(sim.conns).filter((c) => c.src === n.id && !APPROVED_DEST.has(c.dst));
+  if (linked.length) add("Unapproved connection activity", `${linked.length} outbound events to ${new Set(linked.map((c) => c.dst)).size} unapproved peers; ${linked.filter((c) => c.blockedBy).length} denied.`, "Denied attempts show enforcement, not delivered data. Periodic activity may be a legitimate agent or scheduled job.", "Inspect Network & data, destination ownership, host process and job authorization. Preserve timestamps and investigate API access events separately.");
+  $("investigation").innerHTML = `<h3>${n.id} · working hypotheses</h3>${items.join("") || '<p>No selected-device rule or hardware condition currently requires escalation in the retained evidence. Review cluster findings and sensor coverage before concluding that activity is safe.</p>'}<p class="note">${visibleSamples(n).length}/${ui.evidenceWindow} samples retained for this device in the selected window. Hardware counter changes may describe a recovered condition.</p>`;
+  const findings = relevantFindings();
+  $("detCount").textContent = `${findings.filter((f) => f.status === "open").length} open · ${findings.length} matching · ${ui.evidenceWindow}s`;
+  $("detBody").innerHTML = findings.map((f) => `<tr><td class="mono">${clock(f.t)}<div class="note">last ${clock(f.last)}</div></td><td><span class="pill p-${f.cat}">${esc({ ctx: "context", op: "operational", inv: "investigate", sec: "security" }[f.cat] || f.cat)}</span> ${esc(f.title)}<div class="note mono">${esc(f.rule)}</div></td><td class="mono">${esc(f.subject)}</td><td>${esc(DEFENSES.find((d) => d.id === f.sensor)?.name || f.sensor)}</td><td>${esc(f.status)}</td></tr>`).join("") || '<tr><td colspan="5">No findings match these filters. Review coverage and widen the window if needed.</td></tr>';
+}
 
 // ---------------------------------------------------------------- detail card
 function showCard(id) {
@@ -1392,7 +1776,7 @@ $("closeDash").onclick = () => $("dash").close();
 $("openRt").onclick = () => $("rt").showModal();
 $("closeRt").onclick = $("cancelRt").onclick = () => $("rt").close();
 $("startRt").onclick = () => { $("rt").close(); startRedTeam(); flyTo(P(-20, 1, -4), 70); };
-$("pause").onclick = () => { sim.paused = !sim.paused; $("pause").setAttribute("aria-pressed", sim.paused); $("pause").textContent = sim.paused ? "Resume" : "Pause"; };
+$("pause").onclick = togglePause;
 $("speed").onchange = (e) => (sim.speed = +e.target.value);
 ui.pirateMode = "occasional";
 $("pirateMode").onchange = (e) => { ui.pirateMode = e.target.value; if (e.target.value !== "off") sim.nextPirate = Math.min(sim.nextPirate, sim.t + 8); };

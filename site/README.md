@@ -18,10 +18,20 @@ GitHub Pages publishes the `local-security-lab` branch from `/ (root)`:
 - [The security story](https://nsirivolu27.github.io/quantum-datacenter-anomaly/site/security.html)
 - [Sentinel Ops console](https://nsirivolu27.github.io/quantum-datacenter-anomaly/site/ops/) (`ops/index.html`)
 
-Sentinel Ops draws its 3D view with the Canvas 2D API and no libraries. Detection
-rules and thresholds match `src/qdc_anomaly/lab`; AWS services are the mapping in
-`docs/12-aws-architecture.md`, not a deployment. Attacker traffic uses the
-documentation ranges 203.0.113.0/24 and 198.51.100.0/24.
+Sentinel Ops draws its 3D view with the Canvas 2D API and no libraries. Its
+engineering view covers cluster health, individual GPUs and jobs, network and
+data events, investigation steps, and how the cluster operates. Select a GPU
+to inspect activity, memory, power, temperature, interconnect rates and hardware
+error counters. Controlled conditions demonstrate cooling loss, memory pressure,
+link degradation, corrected memory errors and missing telemetry. Evidence can
+be filtered by time window and exported as an unsigned JSON snapshot.
+
+All readings are synthetic. The extended hardware model uses an illustrative
+16 GiB / 300 W device profile. Core detection thresholds come from
+`src/qdc_anomaly/lab`, but browser event semantics and response behavior are
+simplified; this page does not execute the lab's machine-learning models.
+AWS services map to `docs/12-aws-architecture.md`, not a deployment. Attacker
+traffic uses documentation ranges 203.0.113.0/24 and 198.51.100.0/24.
 
 The root `.nojekyll` file keeps these HTML pages unchanged during publishing.
 Future pushes to this branch update the hosted pages. Publishing from `main`
