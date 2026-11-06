@@ -200,3 +200,23 @@ def test_outbound_volume_needs_sustained_bytes_to_one_unapproved_peer():
     assert not [
         f for f in detect([], flows[:3], [], INVENTORY, config) if f["rule"] == "outbound-volume"
     ]
+
+
+def test_detection_quality_measures_benign_noise_without_false_alarms():
+    from qdc_anomaly.lab.quality import RULES, analyze_cycle, evaluate, generate_cycle
+
+    summary = evaluate(n_cycles=40, seed=7)
+    assert list(summary.index) == list(RULES)
+    # Approved bursts, approved polling, and a backup to the approved API never fire these.
+    assert summary.loc["unapproved-compute", "false_alarms"] == 0
+    assert summary.loc["thermal", "false_alarms"] == 0
+    assert summary.loc["outbound-volume", "false_alarms"] == 0
+    # Bursty uploads to the receiver can occasionally look regular; that is a documented
+    # property of the periodic rule, so only require it to be rare.
+    assert summary.loc["periodic-connection", "false_alarms"] <= 3
+    # A cooling fault is always above the threshold, so it is always found.
+    assert summary.loc["thermal", "recall"] == 1.0
+    # Ground truth is behavior, so some sub-threshold recon is missed on purpose.
+    cycle = generate_cycle(123, LabConfig())
+    rules = {f["rule"] for f in analyze_cycle(cycle, LabConfig())}
+    assert rules <= set(RULES)

@@ -165,5 +165,8 @@ python scripts/verify_lab.py
 
 Unit tests check evidence filtering, missing sensors, time-window rules, approved
 load, model integration, cycle transitions, and (in `tests/test_security.py`) the
-asset integrity, policy, and evidence-sealing cases on disposable fixtures. The live verifier requires Docker
+asset integrity, policy, and evidence-sealing cases on disposable fixtures.
+`python scripts/evaluate_detections.py` measures each rule's precision, recall,
+and time to detect on seeded synthetic cycles with benign noise; the current
+table and the reasons behind every miss are in [security results](security-results.md). The live verifier requires Docker
 and checks the actual sensor pipeline end to end.

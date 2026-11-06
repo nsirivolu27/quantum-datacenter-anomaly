@@ -124,3 +124,52 @@ result from this session. Restore Docker engine availability, run the live
 commands again, and record the actual boundary JSON and finding set before
 claiming a current end-to-end pass. If volume is absent in a running cycle,
 inspect combined and per-flow bytes before proposing a threshold change.
+
+
+## 2026-11-05: detection quality on seeded synthetic cycles
+
+Command, from the repository root: `python scripts/evaluate_detections.py --cycles 500 --seed 1`.
+Linux x86_64, Python 3.13, thresholds from `lab/settings.json`. Runs in about one
+second. Outputs `detection_quality.csv`, `misses_by_parameter.csv`, and
+`detection_quality.md` under `results-detection/` (ignored by git).
+
+Each cycle is 120 seconds built from the lab's simulator shapes and normalized by
+the same functions the collector uses. Four suspicious behaviors are injected
+independently, each half the time, with random parameters that sometimes fall
+below the rules' thresholds. Benign noise is always present: a 20 second approved
+burst, regular polling of the approved API at 2, 5, or 10 seconds, and a backup
+of two to six large uploads to the approved API. Ground truth is whether a
+behavior was injected, not whether it crossed a threshold.
+
+| rule | with behavior | detected | missed | false alarms | precision | recall | median time to detect |
+|---|---|---|---|---|---|---|---|
+| thermal | 245 | 245 | 0 | 0 | 1.0 | 1.0 | 0.4 s |
+| unapproved-compute | 262 | 262 | 0 | 0 | 1.0 | 1.0 | 0.5 s |
+| honeypot-contact | 268 | 268 | 0 | 0 | 1.0 | 1.0 | 3.5 s |
+| port-spread | 268 | 202 | 66 | 0 | 1.0 | 0.754 | 0.0 s |
+| periodic-connection | 251 | 176 | 75 | 8 | 0.957 | 0.701 | 0.0 s |
+| outbound-volume | 262 | 193 | 69 | 0 | 1.0 | 0.737 | 1.0 s |
+| compute-network-overlap | 262 | 262 | 0 | 0 | 1.0 | 1.0 | 1.0 s |
+
+What the table says:
+
+- No rule fired on the benign noise except `periodic-connection`, which flagged a
+  bursty data dump as regular in 8 of 249 quiet cycles. Uploads spaced at random
+  between 1.5 and 4.5 seconds can land close enough to even spacing to pass the
+  0.25 variation limit. That is a property of the rule worth knowing, not a bug.
+- `port-spread` misses every scan spaced five seconds per port, whatever the port
+  count, because seven knocks then span 30 seconds and the window is 20. A slow
+  scan evades this rule by design of the window.
+- `outbound-volume` misses every two-upload dump: two 66 kB transfers are 132 kB,
+  under the 150 kB threshold.
+- `periodic-connection` misses beacons with five connections (the rule needs
+  six) and most with 35 percent jitter (variation above 0.25). A few perfectly
+  regular beacons are also missed when the misuse dump interleaves with them to
+  the same destination and port, because the rule groups by destination and port
+  and the mixed stream is no longer regular.
+- `thermal`, `unapproved-compute`, `honeypot-contact`, and
+  `compute-network-overlap` found every injected case and never fired on noise.
+
+These numbers describe this generator. They are not a claim about production
+traffic, and they do not measure the Isolation Forest, which the live cycle uses
+as context only.

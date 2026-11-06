@@ -1,0 +1,1433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sentinel Ops</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a network operations console. Header with run controls, a left rail for
+   view and learning links, the 3D data hall in the middle, and a right panel with
+   live status, defenses, and the engineering summary. Single dark theme on purpose:
+   it is a control room screen. */
+:root {
+  --bg: #0a1017; --bg-2: #0e161f; --panel: #111b26; --panel-2: #172331; --line: #22313f; --line-2: #2f4255;
+  --ink: #e5edf6; --ink-2: #b3c1d1; --ink-3: #7d8ea3;
+  --teal: #3ec1b0; --blue: #6c9cff; --amber: #f2a93b; --red: #ff6b6b; --magenta: #d36cf0; --green: #4fd18f; --grey: #8592a3;
+  --sans: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+a { color: var(--teal); }
+button, select, input { font: inherit; color: inherit; }
+button { background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 7px; padding: 6px 11px; cursor: pointer; min-height: 32px; }
+button:hover { border-color: var(--ink-3); }
+button.primary { background: var(--teal); border-color: var(--teal); color: #06231f; font-weight: 600; }
+button.warn { border-color: color-mix(in srgb, var(--red) 55%, var(--line-2)); }
+button[aria-pressed="true"] { background: color-mix(in srgb, var(--teal) 22%, var(--panel-2)); border-color: var(--teal); }
+select { background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 7px; padding: 5px 8px; min-height: 32px; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.app { height: 100%; display: grid; grid-template-columns: 240px minmax(0, 1fr) 390px; grid-template-rows: auto minmax(0, 1fr); }
+header.top { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--bg-2); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; margin-right: 6px; }
+.brand svg { width: 22px; height: 22px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-2); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+.clock { font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-left: auto; }
+.controls label { font-size: 12px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
+
+aside.left { border-right: 1px solid var(--line); padding: 14px 14px 20px max(14px, env(safe-area-inset-left, 0px)); overflow: auto; display: grid; gap: 18px; align-content: start; background: var(--bg-2); }
+.group h2 { font-size: 12px; font-weight: 600; color: var(--ink-3); margin: 0 0 8px; letter-spacing: .02em; }
+.group p { margin: 0; color: var(--ink-3); font-size: 12px; }
+.toggle { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.toggle input { accent-color: var(--teal); width: 15px; height: 15px; }
+.legend { display: grid; gap: 6px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: flex; align-items: center; gap: 8px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.scale { display: grid; gap: 6px; }
+.scale input { width: 100%; accent-color: var(--teal); }
+.links { display: grid; gap: 6px; }
+.links a { display: grid; gap: 1px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; text-decoration: none; color: var(--ink); background: var(--panel); }
+.links a:hover { border-color: var(--line-2); }
+.links a small { color: var(--ink-3); font-size: 11px; }
+
+main.stage { position: relative; min-width: 0; min-height: 0; background: radial-gradient(ellipse at 50% 40%, #102030 0%, var(--bg) 70%); }
+canvas#scene { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+canvas#scene.dragging { cursor: grabbing; }
+.overlay-top { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; gap: 10px; pointer-events: none; }
+.overlay-top > * { pointer-events: auto; }
+.hint { font-size: 12px; color: var(--ink-3); background: rgba(10, 16, 23, .75); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.viewbtns { display: flex; gap: 6px; }
+.viewbtns button { background: rgba(17, 27, 38, .9); font-size: 12px; }
+.card { position: absolute; left: 12px; bottom: 12px; width: min(420px, calc(100% - 24px)); background: rgba(13, 21, 30, .96); border: 1px solid var(--line-2); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; box-shadow: 0 18px 40px rgba(0, 0, 0, .45); }
+.card h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.card .sub { font-size: 12px; color: var(--ink-3); margin-top: -4px; }
+.card dl { margin: 0; display: grid; grid-template-columns: 76px 1fr; gap: 4px 10px; font-size: 13px; }
+.card dt { color: var(--ink-3); }
+.card dd { margin: 0; color: var(--ink-2); }
+.card .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.banner { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); background: rgba(13, 21, 30, .95); border: 1px solid var(--red); color: var(--ink); border-radius: 10px; padding: 8px 14px; font-size: 13px; max-width: calc(100% - 24px); text-align: center; }
+.banner.rt { border-color: var(--teal); }
+
+aside.right { border-left: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); min-height: 0; background: var(--bg-2); }
+.tabs { display: flex; gap: 4px; padding: 10px max(12px, env(safe-area-inset-right, 0px)) 0 12px; border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 8px 10px; color: var(--ink-3); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--teal); }
+.pane { overflow: auto; padding: 14px max(14px, env(safe-area-inset-right, 0px)) 24px 14px; display: none; gap: 16px; align-content: start; }
+.pane.on { display: grid; grid-template-columns: minmax(0, 1fr); }
+.pane > * { min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; display: grid; gap: 1px; }
+.kpi span { font-size: 11px; color: var(--ink-3); }
+.kpi b { font-family: var(--mono); font-weight: 500; font-size: 19px; font-variant-numeric: tabular-nums; }
+.kpi.alert b { color: var(--red); }
+.sect h3 { font-size: 13px; margin: 0 0 8px; font-weight: 600; color: var(--ink-2); }
+.feed { display: grid; gap: 4px; }
+.ev { display: grid; grid-template-columns: 54px 8px 1fr; gap: 8px; align-items: baseline; font-size: 12.5px; color: var(--ink-2); padding: 5px 0; border-bottom: 1px solid var(--line); }
+.ev time { font-family: var(--mono); color: var(--ink-3); font-size: 11.5px; }
+.ev i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; transform: translateY(-1px); }
+.t-info i { background: var(--grey); } .t-pirate i { background: var(--red); } .t-rt i { background: var(--teal); } .t-detect i { background: var(--amber); } .t-block i { background: var(--green); } .t-loss i { background: var(--magenta); } .t-ops i { background: var(--blue); }
+.t-loss { color: var(--ink); }
+.defs { display: grid; gap: 14px; }
+.defs h4 { margin: 0 0 6px; font-size: 12px; color: var(--ink-3); font-weight: 600; }
+.def { display: grid; grid-template-columns: 20px 1fr; gap: 8px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; cursor: pointer; }
+.def input { accent-color: var(--teal); width: 16px; height: 16px; margin-top: 2px; }
+.def b { font-size: 13px; font-weight: 600; display: block; }
+.def span { font-size: 12px; color: var(--ink-3); display: block; }
+.def span.aws { color: var(--ink-2); }
+table.t { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.t th, table.t td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.t th { color: var(--ink-3); font-weight: 500; }
+table.t td.n { font-family: var(--mono); text-align: right; white-space: nowrap; }
+.tw { overflow-x: auto; }
+.pill { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.p-op { background: color-mix(in srgb, var(--amber) 20%, transparent); color: var(--amber); }
+.p-inv { background: color-mix(in srgb, var(--magenta) 20%, transparent); color: var(--magenta); }
+.p-sec { background: color-mix(in srgb, var(--red) 20%, transparent); color: var(--red); }
+.p-ctx { background: color-mix(in srgb, var(--blue) 20%, transparent); color: var(--blue); }
+.p-ok { background: color-mix(in srgb, var(--green) 20%, transparent); color: var(--green); }
+.p-gap { background: color-mix(in srgb, var(--amber) 20%, transparent); color: var(--amber); }
+.p-bad { background: color-mix(in srgb, var(--red) 22%, transparent); color: var(--red); }
+.p-rt { background: color-mix(in srgb, var(--teal) 20%, transparent); color: var(--teal); }
+.note { font-size: 12px; color: var(--ink-3); margin: 0; }
+
+dialog { background: var(--bg-2); color: var(--ink); border: 1px solid var(--line-2); border-radius: 14px; padding: 0; width: min(1240px, 96vw); max-height: 92vh; }
+dialog::backdrop { background: rgba(3, 7, 11, .7); }
+.dlg-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg-2); z-index: 2; }
+.dlg-head h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.dlg-head p { margin: 2px 0 0; color: var(--ink-3); font-size: 12px; }
+.dlg-body { padding: 16px 18px 20px; display: grid; gap: 16px; overflow: auto; }
+.charts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.chart { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; min-width: 0; }
+.chart h4 { margin: 0; font-size: 12px; color: var(--ink-3); font-weight: 500; display: flex; justify-content: space-between; gap: 8px; }
+.chart h4 b { color: var(--ink); font-family: var(--mono); font-weight: 500; }
+.chart canvas { width: 100%; height: 96px; display: block; }
+.two { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; }
+.box h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; }
+.box h3 span { font-weight: 400; color: var(--ink-3); font-size: 12px; }
+.heat canvas { width: 100%; height: 170px; display: block; image-rendering: pixelated; }
+.nodes-wrap { max-height: 300px; overflow: auto; }
+tr.sel td { background: color-mix(in srgb, var(--teal) 12%, transparent); }
+tr.click { cursor: pointer; }
+.state { font-size: 11px; font-weight: 600; }
+.s-ok { color: var(--ink-3); } .s-hot { color: var(--red); } .s-hijacked { color: var(--magenta); } .s-quarantined { color: var(--grey); } .s-job { color: var(--teal); }
+.roe { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.roe ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 13px; display: grid; gap: 4px; }
+
+@media (max-width: 1180px) {
+  html, body { height: auto; }
+  .app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 64vh auto auto; }
+  aside.left { border-right: 0; border-top: 1px solid var(--line); order: 3; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); padding-right: max(14px, env(safe-area-inset-right, 0px)); }
+  aside.right { border-left: 0; border-top: 1px solid var(--line); order: 4; }
+  .pane { max-height: none; }
+  .charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two, .roe { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .controls { margin-left: 0; }
+  .hint { display: none; }
+  .charts { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" fill="none" stroke="#3ec1b0" stroke-width="2"/><path d="M6 15l3-4 3 2 3-5 3 6" fill="none" stroke="#f2a93b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Sentinel Ops
+    </div>
+    <span class="chip"><i></i>Synthetic simulation</span>
+    <span class="clock" id="clock">T+00:00</span>
+    <div class="controls">
+      <button id="pause" aria-pressed="false">Pause</button>
+      <label>Speed <select id="speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label>
+      <label>Pirates <select id="pirateMode"><option value="off">Off</option><option value="occasional" selected>Every 60 to 90 s</option><option value="frequent">Every 25 to 40 s</option></select></label>
+      <label>Launch <select id="launchType"></select></label>
+      <button class="warn" id="launch">Launch pirate</button>
+      <button id="openRt">Red team test</button>
+      <button class="primary" id="openDash">Mainframe dashboard</button>
+    </div>
+  </header>
+
+  <aside class="left" aria-label="View and learning">
+    <div class="group">
+      <h2>Mainframe size</h2>
+      <div class="scale">
+        <label for="racks" class="note">Racks: <b id="racksV" class="mono">12</b> · GPUs: <b id="gpusV" class="mono">48</b></label>
+        <input id="racks" type="range" min="1" max="32" value="12">
+        <p>Four GPU nodes per rack. Telemetry, traffic, and detection scale with it.</p>
+      </div>
+    </div>
+    <div class="group">
+      <h2>Layers</h2>
+      <label class="toggle"><input type="checkbox" id="showLabels" checked> Labels</label>
+      <label class="toggle"><input type="checkbox" id="showTraffic" checked> Traffic</label>
+      <label class="toggle"><input type="checkbox" id="showDefense" checked> Defense devices</label>
+      <label class="toggle"><input type="checkbox" id="autoOrbit"> Slow orbit</label>
+    </div>
+    <div class="group">
+      <h2>Legend</h2>
+      <div class="legend">
+        <span><i style="background:#1f4f6b"></i>GPU idle, cool</span>
+        <span><i style="background:#3ec1b0"></i>GPU busy, approved job</span>
+        <span><i style="background:#f2a93b"></i>Running warm</span>
+        <span><i style="background:#ff6b6b"></i>Over 85 °C</span>
+        <span><i style="background:#d36cf0"></i>Hijacked</span>
+        <span><i style="background:#56606d"></i>Quarantined</span>
+        <span><i style="background:#ff6b6b;border-radius:50%"></i>Pirate traffic</span>
+        <span><i style="background:#3ec1b0;border-radius:50%"></i>Authorized tester</span>
+      </div>
+    </div>
+    <div class="group">
+      <h2>Learn the pieces</h2>
+      <div class="links">
+        <a href="https://nsirivolu27.github.io/quantum-datacenter-anomaly/site/" target="_blank" rel="noopener">Inside a data center<small>Book one: anomaly detection you can run</small></a>
+        <a href="https://nsirivolu27.github.io/quantum-datacenter-anomaly/site/security.html" target="_blank" rel="noopener">What an intruder tries<small>Book two: data security you can run</small></a>
+        <a href="https://nsirivolu27.github.io/quantum-datacenter-anomaly/site/book/" target="_blank" rel="noopener">Where Does My Picture Go?<small>Picture book for ages 5 to 7</small></a>
+        <a href="https://github.com/nsirivolu27/quantum-datacenter-anomaly/blob/main/docs/14-threat-model.md" target="_blank" rel="noopener">Threat model<small>Assets, boundaries, ATT&amp;CK mapping</small></a>
+        <a href="https://github.com/nsirivolu27/quantum-datacenter-anomaly/blob/main/docs/12-aws-architecture.md" target="_blank" rel="noopener">AWS architecture<small>Proposed, not deployed</small></a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="stage" id="stage">
+    <canvas id="scene" aria-label="3D view of the data hall: a GPU mainframe, network devices, sensors, data stores, and pirate ships approaching from the internet. Select objects for details; the dashboard and side panels give the same information as text."></canvas>
+    <div class="overlay-top">
+      <span class="hint">Drag to orbit · scroll to zoom · select the mainframe, a device, or a ship</span>
+      <div class="viewbtns"><button id="viewHall">Whole hall</button><button id="viewMain">Mainframe</button><button id="viewEdge">Edge</button></div>
+    </div>
+    <div class="banner" id="banner" hidden></div>
+    <div class="card" id="card" hidden></div>
+  </main>
+
+  <aside class="right" aria-label="Status">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="live">Live</button>
+      <button role="tab" aria-selected="false" data-tab="defense">Defenses</button>
+      <button role="tab" aria-selected="false" data-tab="summary">Engineering summary</button>
+    </div>
+    <section class="pane on" id="pane-live">
+      <div class="kpis" id="kpis"></div>
+      <div class="sect"><h3>Event feed</h3><div class="feed" id="feed"></div></div>
+    </section>
+    <section class="pane" id="pane-defense">
+      <p class="note">Turn controls off to see what each one was doing. Prevention stops a step, detection notices it, response contains it. AWS service first, an open source equivalent second. Nothing here talks to AWS.</p>
+      <div class="defs" id="defs"></div>
+    </section>
+    <section class="pane" id="pane-summary">
+      <div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><p class="note">Generated from this session's synthetic run.</p><button id="copySummary">Copy as text</button></div>
+      <div id="summary"></div>
+    </section>
+  </aside>
+</div>
+
+<dialog id="dash" aria-labelledby="dashTitle">
+  <div class="dlg-head"><div><h2 id="dashTitle">GPU mainframe</h2><p id="dashSub">Streaming synthetic telemetry, one sample per GPU per second</p></div><button id="closeDash">Close</button></div>
+  <div class="dlg-body">
+    <div class="charts">
+      <div class="chart"><h4>Cluster utilization <b id="cU">0%</b></h4><canvas id="chU"></canvas></div>
+      <div class="chart"><h4>Temperature, median and max <b id="cT">0 °C</b></h4><canvas id="chT"></canvas></div>
+      <div class="chart"><h4>Power draw <b id="cP">0 kW</b></h4><canvas id="chP"></canvas></div>
+      <div class="chart"><h4>Egress allowed and denied <b id="cE">0 MB/s</b></h4><canvas id="chE"></canvas></div>
+    </div>
+    <div class="two">
+      <div class="box heat"><h3>Temperature by GPU, last 60 s <span>rows are GPUs, columns are seconds</span></h3><canvas id="heat"></canvas></div>
+      <div class="box"><h3>Detections <span id="detCount">0 open</span></h3><div class="nodes-wrap"><table class="t"><thead><tr><th>Time</th><th>Rule</th><th>Subject</th><th>Seen by</th><th>Status</th></tr></thead><tbody id="detBody"></tbody></table></div></div>
+    </div>
+    <div class="box"><h3>GPU nodes <span>sorted by context score; select a row to find it in the hall</span></h3>
+      <div class="nodes-wrap tw"><table class="t"><thead><tr><th>GPU</th><th>Rack</th><th>Job</th><th class="n">Util %</th><th class="n">Temp °C</th><th class="n">Expected °C</th><th class="n">Context z</th><th class="n">Power W</th><th class="n">Memory MB</th><th>State</th></tr></thead><tbody id="nodeBody"></tbody></table></div>
+      <p class="note" style="margin-top:8px">Context z is temperature relative to the expected temperature for the current load (42 °C plus 0.3 per percent busy), divided by the simulator's noise. Above 4 it is flagged as context, never as a verdict. This is the feature the repository's model evaluation named as the next experiment.</p>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="rt" aria-labelledby="rtTitle">
+  <div class="dlg-head"><div><h2 id="rtTitle">Authorized red team engagement RT-2026-11</h2><p>Ethical hackers test the mainframe with written permission, a fixed scope, and rules of engagement</p></div><button id="closeRt">Close</button></div>
+  <div class="dlg-body">
+    <div class="roe">
+      <div class="box"><h3>In scope</h3><ul><li>GPUs gpu-01 to gpu-04 and the decoy service</li><li>Test bucket <span class="mono">qdc-redteam-test</span> and a canary model artifact</li><li>One test recovery point in the backup vault</li><li>Six tests over about two simulated minutes</li></ul></div>
+      <div class="box"><h3>Out of scope</h3><ul><li>Production datasets and approved models</li><li>Other tenants and shared services</li><li>AWS's own infrastructure</li><li>Any real data leaving the environment; canary data only</li></ul></div>
+      <div class="box"><h3>Rules that come from AWS policy</h3><ul><li>No denial of service, simulated DDoS, or port, protocol, or request flooding</li><li>No Route 53 zone walking, DNS hijacking, or pharming</li><li>Command and control testing needs prior authorization from AWS</li><li>Vulnerabilities in AWS services go to AWS Security within 24 hours</li></ul><p class="note" style="margin-top:6px"><a href="https://aws.amazon.com/security/penetration-testing/" target="_blank" rel="noopener">AWS penetration testing policy</a></p></div>
+      <div class="box"><h3>Deconfliction</h3><ul><li>Testers connect through Session Manager from an approved bastion, so their source is known</li><li>The security team still sees every finding, labeled authorized, and does not escalate it</li><li>A stop word halts testing immediately</li><li>Each test has an expected result; gaps become fixes, not blame</li></ul></div>
+    </div>
+    <div class="row" style="display:flex;gap:10px;justify-content:flex-end"><button id="cancelRt">Not now</button><button class="primary" id="startRt">Approve and start engagement</button></div>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+/* Sentinel Ops: a synthetic GPU mainframe, its network, its defenses, data pirates,
+   and authorized testers, drawn with a small canvas 3D renderer (no libraries).
+   Everything is simulated in this page. Detection rules and thresholds mirror the
+   repository's lab rules; AWS names map to the proposal in docs/12, not to a deployment. */
+
+// ---------------------------------------------------------------- helpers
+const $ = (id) => document.getElementById(id);
+function mulberry32(seed) { return function () { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const rng = mulberry32(20261105);
+const rand = (a, b) => a + (b - a) * rng();
+const pickOne = (list) => list[Math.floor(rng() * list.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const mean = (a) => a.reduce((s, v) => s + v, 0) / (a.length || 1);
+const pstdev = (a) => { const m = mean(a); return Math.sqrt(mean(a.map((v) => (v - m) * (v - m)))); };
+const pad = (n) => String(n).padStart(2, "0");
+const clock = (t) => `T+${pad(Math.floor(t / 60))}:${pad(Math.floor(t % 60))}`;
+const mb = (bytes) => bytes >= 1e9 ? (bytes / 1e9).toFixed(2) + " GB" : bytes >= 1e6 ? (bytes / 1e6).toFixed(1) + " MB" : bytes >= 1e3 ? (bytes / 1e3).toFixed(1) + " kB" : bytes + " B";
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const C = {
+  floor: [13, 20, 29], gpuZone: [24, 38, 56], monZone: [20, 42, 50], decoyZone: [46, 28, 54], dataZone: [24, 44, 36], edgeZone: [34, 30, 26],
+  device: [44, 62, 84], deviceOff: [40, 40, 46], cap: [22, 30, 40], hull: [62, 44, 34],
+  teal: [62, 193, 176], blue: [108, 156, 255], amber: [242, 169, 59], red: [255, 107, 107], magenta: [211, 108, 240], green: [79, 209, 143], grey: [86, 96, 109], ink: [229, 237, 246],
+};
+const rgba = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+// ---------------------------------------------------------------- 3D view
+// A camera orbits a target. Faces are projected, shaded with one light, sorted far to
+// near, and painted. Ground items are drawn first so the floor never covers objects.
+const V = { canvas: $("scene"), ctx: null, w: 0, h: 0, dpr: 1, yaw: -0.32, pitch: 0.84, dist: 82, target: { x: -1, y: 0, z: -2 }, ground: [], items: [], labels: [], hits: [] };
+V.ctx = V.canvas.getContext("2d");
+const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
+const dot3 = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+const cross = (a, b) => ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
+const norm = (a) => { const l = Math.hypot(a.x, a.y, a.z) || 1; return { x: a.x / l, y: a.y / l, z: a.z / l }; };
+const P = (x, y, z) => ({ x, y, z });
+const LIGHT = norm(P(0.45, 1, 0.65));
+
+function resize() {
+  const r = V.canvas.getBoundingClientRect();
+  V.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  V.w = Math.max(1, r.width); V.h = Math.max(1, r.height);
+  V.canvas.width = Math.round(V.w * V.dpr); V.canvas.height = Math.round(V.h * V.dpr);
+}
+function camera() {
+  const cp = Math.cos(V.pitch), sp = Math.sin(V.pitch);
+  V.pos = P(V.target.x + V.dist * cp * Math.sin(V.yaw), V.target.y + V.dist * sp, V.target.z + V.dist * cp * Math.cos(V.yaw));
+  V.fwd = norm(sub(V.target, V.pos));
+  V.right = norm(cross(V.fwd, P(0, 1, 0)));
+  V.up = cross(V.right, V.fwd);
+  V.f = Math.min(V.w * 1.32, V.h * 2.0) * (V.w < 700 ? 1.45 : 1);
+}
+function project(p) {
+  const d = sub(p, V.pos), z = dot3(d, V.fwd);
+  if (z < 2) return null;
+  const s = V.f / z;
+  return { x: V.w / 2 + dot3(d, V.right) * s, y: V.h / 2 - dot3(d, V.up) * s, z, s };
+}
+function poly(pts, color, o = {}) {
+  const pr = pts.map(project);
+  if (pr.some((p) => !p)) return;
+  if (o.normal && o.cull !== false) {
+    const c = P(mean(pts.map((p) => p.x)), mean(pts.map((p) => p.y)), mean(pts.map((p) => p.z)));
+    if (dot3(o.normal, sub(V.pos, c)) <= 0) return;
+  }
+  const light = o.flat ? 1 : 0.5 + 0.5 * Math.max(0, dot3(o.normal || P(0, 1, 0), LIGHT));
+  const item = { kind: "poly", pr, color, light, alpha: o.alpha ?? 1, stroke: o.stroke, lw: o.lw || 1, dash: o.dash, id: o.id, depth: mean(pr.map((p) => p.z)) };
+  (o.ground ? V.ground : V.items).push(item);
+}
+function box(x, y, z, w, h, d, color, o = {}) {
+  const X = x + w, Y = y + h, Z = z + d;
+  poly([P(x, Y, z), P(X, Y, z), P(X, Y, Z), P(x, Y, Z)], color, { ...o, normal: P(0, 1, 0) });
+  poly([P(x, y, Z), P(X, y, Z), P(X, Y, Z), P(x, Y, Z)], color, { ...o, normal: P(0, 0, 1) });
+  poly([P(X, y, z), P(x, y, z), P(x, Y, z), P(X, Y, z)], color, { ...o, normal: P(0, 0, -1) });
+  poly([P(X, y, Z), P(X, y, z), P(X, Y, z), P(X, Y, Z)], color, { ...o, normal: P(1, 0, 0) });
+  poly([P(x, y, z), P(x, y, Z), P(x, Y, Z), P(x, Y, z)], color, { ...o, normal: P(-1, 0, 0) });
+}
+function line(a, b, color, o = {}) {
+  const pa = project(a), pb = project(b);
+  if (!pa || !pb) return;
+  (o.ground ? V.ground : V.items).push({ kind: "line", pa, pb, color, alpha: o.alpha ?? 1, lw: o.lw || 1, dash: o.dash, depth: (pa.z + pb.z) / 2 - (o.lift || 0) });
+}
+function dotAt(p, r, color, o = {}) {
+  const pp = project(p);
+  if (!pp) return;
+  V.items.push({ kind: "dot", p: pp, r: Math.max(1.5, r * pp.s), color, alpha: o.alpha ?? 1, glow: o.glow, depth: pp.z - 0.5 });
+}
+function label(p, text, o = {}) {
+  const pp = project(p);
+  if (pp) V.labels.push({ p: pp, text, color: o.color || C.ink, sub: o.sub, strong: o.strong, prio: o.prio || 1 });
+}
+function ring(p, radius, color, alpha) {
+  const pp = project(p);
+  if (pp) V.items.push({ kind: "ring", p: pp, r: radius * pp.s, color, alpha, depth: pp.z - 1 });
+}
+
+function paint() {
+  const g = V.ctx;
+  g.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
+  g.clearRect(0, 0, V.w, V.h);
+  V.hits = [];
+  const draw = (it) => {
+    g.globalAlpha = it.alpha;
+    if (it.kind === "poly") {
+      g.beginPath();
+      it.pr.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
+      g.closePath();
+      g.fillStyle = rgba(it.color.map((v) => v * it.light));
+      g.fill();
+      if (it.stroke) { g.setLineDash(it.dash || []); g.strokeStyle = it.stroke; g.lineWidth = it.lw; g.stroke(); g.setLineDash([]); }
+      if (it.id) V.hits.push(it);
+    } else if (it.kind === "line") {
+      g.setLineDash(it.dash || []);
+      g.strokeStyle = rgba(it.color); g.lineWidth = it.lw;
+      g.beginPath(); g.moveTo(it.pa.x, it.pa.y); g.lineTo(it.pb.x, it.pb.y); g.stroke();
+      g.setLineDash([]);
+    } else if (it.kind === "dot") {
+      if (it.glow) { g.globalAlpha = it.alpha * 0.25; g.fillStyle = rgba(it.color); g.beginPath(); g.arc(it.p.x, it.p.y, it.r * 2.6, 0, 7); g.fill(); g.globalAlpha = it.alpha; }
+      g.fillStyle = rgba(it.color); g.beginPath(); g.arc(it.p.x, it.p.y, it.r, 0, 7); g.fill();
+    } else if (it.kind === "ring") {
+      g.strokeStyle = rgba(it.color); g.lineWidth = 2; g.beginPath(); g.arc(it.p.x, it.p.y, it.r, 0, 7); g.stroke();
+    }
+  };
+  V.ground.forEach(draw);
+  V.items.sort((a, b) => b.depth - a.depth).forEach(draw);
+  g.globalAlpha = 1;
+  if (ui.labels) {
+    g.textBaseline = "middle";
+    // Highest priority first; skip any label that would overlap one already drawn.
+    const placed = [], narrow = V.w < 700;
+    V.labels.sort((a, b) => b.prio - a.prio || a.p.z - b.p.z).forEach((l) => {
+      if (narrow && l.prio < 3) l.sub = null;
+      g.font = `${l.strong ? 600 : 500} 11.5px "IBM Plex Sans", "Segoe UI", sans-serif`;
+      const w = g.measureText(l.text).width;
+      let w2 = 0;
+      if (l.sub) { g.font = `400 10.5px "IBM Plex Mono", monospace`; w2 = g.measureText(l.sub).width; }
+      const bw = Math.max(w, w2) + 14, bh = l.sub ? 32 : 19, x = clamp(l.p.x - bw / 2, 4, V.w - bw - 4), y = l.p.y - bh - 6;
+      if (placed.some((r) => x < r.x + r.w + 4 && x + bw + 4 > r.x && y < r.y + r.h + 3 && y + bh + 3 > r.y)) return;
+      placed.push({ x, y, w: bw, h: bh });
+      g.fillStyle = "rgba(10,16,23,.82)"; g.strokeStyle = "rgba(47,66,85,.9)"; g.lineWidth = 1;
+      g.beginPath(); g.roundRect ? g.roundRect(x, y, bw, bh, 6) : g.rect(x, y, bw, bh); g.fill(); g.stroke();
+      g.fillStyle = rgba(l.color);
+      g.font = `${l.strong ? 600 : 500} 11.5px "IBM Plex Sans", "Segoe UI", sans-serif`;
+      g.fillText(l.text, x + 7, y + 10);
+      if (l.sub) { g.fillStyle = "#7d8ea3"; g.font = `400 10.5px "IBM Plex Mono", monospace`; g.fillText(l.sub, x + 7, y + 23); }
+    });
+  }
+}
+function pick(x, y) {
+  for (let i = V.hits.length - 1; i >= 0; i--) {
+    const pr = V.hits[i].pr;
+    let inside = false;
+    for (let a = 0, b = pr.length - 1; a < pr.length; b = a++) {
+      if ((pr[a].y > y) !== (pr[b].y > y) && x < ((pr[b].x - pr[a].x) * (y - pr[a].y)) / (pr[b].y - pr[a].y) + pr[a].x) inside = !inside;
+    }
+    if (inside) return V.hits[i].id;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------- layout of the hall
+// Units are roughly meters. x runs west to east (internet on the east), z south to north.
+const ZONES = {
+  gpu: { x0: -29, x1: 4, z0: -20, z1: 7, color: C.gpuZone, name: "GPU subnet", cidr: "10.0.1.0/24" },
+  mon: { x0: 9, x1: 28, z0: -20, z1: -8, color: C.monZone, name: "Monitoring subnet", cidr: "10.0.2.0/24" },
+  decoy: { x0: 9, x1: 28, z0: -4, z1: 7, color: C.decoyZone, name: "Decoy subnet", cidr: "10.0.3.0/24" },
+  data: { x0: -29, x1: 28, z0: 11, z1: 20, color: C.dataZone, name: "Data and endpoints", cidr: "10.0.4.0/24" },
+  edge: { x0: 30, x1: 35, z0: -12, z1: 12, color: C.edgeZone, name: "Edge subnet", cidr: "10.0.0.0/26" },
+};
+const PTS = {
+  spine: P(6.5, 1.6, -7), nat: P(32.5, 1.5, -7), dnsfw: P(32.5, 1.5, 0), alb: P(32.5, 1.5, 7),
+  zeek: P(12.5, 1.4, -15), pipeline: P(18.5, 1.4, -15), gd: P(24.5, 1.4, -15), decoy: P(18.5, 1.6, 1.5),
+  s3: P(-21, 1.6, 15.5), kms: P(-11, 1.4, 15.5), backup: P(-1, 1.6, 15.5), trail: P(9, 1.4, 15.5), endpoint: P(19, 1.2, 15.5),
+  bastion: P(-34, 1.5, 0),
+};
+// Devices drawn as boxes. `def` links a device to the defense control that powers it.
+const DEVICES = [
+  { id: "spine", name: "Spine switches", sub: "2 × 400G, ECMP", at: PTS.spine, size: [3, 2.4, 3] },
+  { id: "nat", name: "Network Firewall + NAT", sub: "egress allowlist", at: PTS.nat, size: [2.6, 2.6, 3.2], def: "egress" },
+  { id: "dnsfw", name: "DNS Firewall", sub: "Route 53 Resolver", at: PTS.dnsfw, size: [2.6, 2, 3], def: "dnsfw" },
+  { id: "alb", name: "ALB + WAF", sub: "inference API, SG default deny", at: PTS.alb, size: [2.6, 2.4, 3.2], def: "sg" },
+  { id: "zeek", name: "Zeek sensor", sub: "traffic mirror", at: PTS.zeek, size: [3, 2, 2.6], def: "rules" },
+  { id: "pipeline", name: "Detection pipeline", sub: "lab rules + context model", at: PTS.pipeline, size: [3, 2.4, 2.6], def: "rules" },
+  { id: "gd", name: "GuardDuty + Security Hub", sub: "managed findings", at: PTS.gd, size: [3, 2.2, 2.6], def: "guardduty" },
+  { id: "decoy", name: "Decoy service", sub: "OpenCanary", at: PTS.decoy, size: [3, 2.6, 3], def: "decoy" },
+  { id: "s3", name: "Model and data bucket", sub: "S3 versioning + Object Lock", at: PTS.s3, size: [5, 2.8, 3.4], def: "objectlock" },
+  { id: "kms", name: "KMS signing key", sub: "Sign / Verify", at: PTS.kms, size: [2.6, 2, 2.6], def: "objectlock" },
+  { id: "backup", name: "Backup vault", sub: "AWS Backup Vault Lock", at: PTS.backup, size: [4, 2.6, 3.2], def: "vaultlock" },
+  { id: "trail", name: "CloudTrail", sub: "management + S3 data events", at: PTS.trail, size: [3, 1.8, 2.6], def: "cloudtrail" },
+  { id: "endpoint", name: "S3 gateway endpoint", sub: "bucket policy: this VPC only", at: PTS.endpoint, size: [2.6, 1.6, 2.6], def: "perimeter" },
+  { id: "bastion", name: "Session Manager", sub: "authorized tester access", at: PTS.bastion, size: [2.6, 2, 2.6] },
+];
+
+// ---------------------------------------------------------------- defenses
+const DEFENSES = [
+  { id: "sg", group: "Prevent", name: "Security groups, default deny", aws: "VPC security groups and NACLs", alt: "nftables or pf host firewalls", sees: "Every inbound attempt as a flow log REJECT", stops: "Inbound connections to anything not explicitly opened", cannot: "Stop traffic a compromised workload starts from inside" },
+  { id: "egress", group: "Prevent", name: "Egress allowlist", aws: "AWS Network Firewall, domain allowlist, plus NAT", alt: "Squid or OPNsense egress proxy", sees: "Every outbound destination by name", stops: "Uploads and tunnels to destinations not on the list", cannot: "Stop abuse of an allowed destination" },
+  { id: "dnsfw", group: "Prevent", name: "DNS firewall", aws: "Route 53 Resolver DNS Firewall", alt: "Unbound response policy zones, Pi-hole", sees: "Every DNS query the GPUs make", stops: "Lookups of mining pools, C2, and tunneling domains", cannot: "Stop traffic sent straight to an IP address" },
+  { id: "imds", group: "Prevent", name: "Metadata hardening", aws: "IMDSv2 required, hop limit 1", alt: "Block 169.254.169.254 from workloads", sees: "Metadata requests without a session token", stops: "SSRF theft of instance role credentials", cannot: "Stop code already running on the GPU from asking properly" },
+  { id: "perimeter", group: "Prevent", name: "Data perimeter", aws: "S3 bucket policy on aws:SourceVpce, VPC endpoint policy", alt: "MinIO bucket policy plus network isolation", sees: "Where every data request comes from", stops: "Stolen credentials used from outside the VPC", cannot: "Stop a request made from inside with valid credentials" },
+  { id: "objectlock", group: "Prevent", name: "Immutable, signed artifacts", aws: "S3 Object Lock on approved versions, KMS-signed manifest pointer", alt: "MinIO object lock plus Sigstore cosign", sees: "Which exact version is approved", stops: "Overwriting or deleting approved models, serving an unsigned one", cannot: "Stop new versions from being written" },
+  { id: "vaultlock", group: "Prevent", name: "Locked backups", aws: "AWS Backup Vault Lock (compliance mode)", alt: "restic or Borg to WORM storage", sees: "Every delete request on recovery points", stops: "Deleting or shortening backups, even by an admin", cannot: "Make a corrupted backup healthy" },
+  { id: "rules", group: "Detect", name: "Lab rules on telemetry and Zeek", aws: "CloudWatch agent nvidia_gpu metrics, Traffic Mirroring to Zeek, VPC Flow Logs", alt: "DCGM exporter, Zeek, Prometheus", sees: "Heat, unapproved compute, probing, rhythm, volume, joins", cannot: "See payloads or prove intent" },
+  { id: "guardduty", group: "Detect", name: "Managed threat detection", aws: "Amazon GuardDuty, findings in Security Hub", alt: "Wazuh, Elastic Security, Suricata", sees: "DNS, flow, and CloudTrail patterns with threat intelligence", cannot: "Know your job registry or your approved versions" },
+  { id: "decoy", group: "Detect", name: "Decoy service", aws: "EC2 instance in a decoy subnet", alt: "OpenCanary, as in the lab", sees: "Anyone touching a service no real job uses", cannot: "See an intruder who never touches it" },
+  { id: "cloudtrail", group: "Detect", name: "API audit", aws: "CloudTrail with S3 data events", alt: "MinIO audit log into a SIEM", sees: "Who called which API on which object, allowed or denied", cannot: "See activity that never reaches an AWS API" },
+  { id: "contain", group: "Respond", name: "Containment playbook", aws: "Security Hub to EventBridge to Systems Manager, quarantine security group after analyst approval", alt: "TheHive or Shuffle with a quarantine VLAN", sees: "Open findings tied to a GPU or credential", stops: "A detected node or session from continuing", cannot: "Act on something nobody detected" },
+];
+const defenseOn = Object.fromEntries(DEFENSES.map((d) => [d.id, true]));
+
+// ---------------------------------------------------------------- simulation state
+const CFG = { thermal: 85, unapproved: 70, volumeWindow: 60, volumeBytes: 150000, portWindow: 20, portThreshold: 6, beaconMin: 6, beaconCv: 0.25, corrSeconds: 5, transferBytes: 50000, contextZ: 4 };
+const APPROVED_DEST = new Set(["vpce-s3", "api.internal", "mirror.internal", "allreduce"]);
+const sim = {
+  t: 0, speed: 2, paused: false, racks: 12, nodes: [], jobs: [], jobSeq: 41, conns: [], audit: [], decoyHits: [],
+  findings: [], feed: [], pirates: [], incidents: [], redteam: null, rtReport: [], nextPirate: 22, pirateSeq: 0,
+  cooling: null, drift: null, hist: { util: [], tempMax: [], tempP50: [], power: [], egressOk: [], egressDenied: [] },
+  totals: { lost: 0, lostWhat: [], blocked: 0, egressOkBytes: 0, dnsBlocked: 0, ttd: [], stolenGpuSeconds: 0 },
+  scheduled: [],
+};
+const ui = { labels: true, traffic: true, defense: true, orbit: false, selected: null, card: null, tab: "live" };
+
+function rackOrigin(r) {
+  const row = Math.floor(r / 8), col = r % 8;
+  return { x: -28 + col * 3.9, z: -4.7 - row * 4.6 }; // row 0 sits nearest the spine; the hall fills toward the back as racks are added
+}
+function buildNodes(count) {
+  const old = new Map(sim.nodes.map((n) => [n.id, n]));
+  const next = [];
+  for (let r = 0; r < count; r++) {
+    const o = rackOrigin(r);
+    for (let s = 0; s < 4; s++) {
+      const id = `gpu-${pad(r * 4 + s + 1)}`;
+      const n = old.get(id) || { id, util: rand(8, 22), temp: 46, power: 80, mem: 1500, job: null, hijackedBy: null, quarantinedUntil: 0, drift: 0, score: 0, hist: [] };
+      Object.assign(n, { rack: r + 1, slot: s, x: o.x, z: o.z, y: 0.25 + s * 1.62 });
+      next.push(n);
+    }
+  }
+  sim.nodes = next;
+  sim.jobs.forEach((j) => { j.nodes = j.nodes.filter((id) => next.some((n) => n.id === id)); });
+}
+const nodeById = (id) => sim.nodes.find((n) => n.id === id);
+const nodeCenter = (n) => P(n.x + 1.3, n.y + 0.7, n.z + 0.8);
+const aisleZ = (n) => n.z + 2.6;
+
+// ---------------------------------------------------------------- feed, findings
+function say(text, tone = "info") {
+  sim.feed.unshift({ t: sim.t, text, tone });
+  if (sim.feed.length > 120) sim.feed.pop();
+  ui.feedDirty = true;
+}
+const RULES = {
+  thermal: { title: "Thermal anomaly", cat: "op", sensor: "rules", aws: "CloudWatch alarm on nvidia_smi_temperature_gpu" },
+  "unapproved-compute": { title: "Compute without an approved job", cat: "inv", sensor: "rules", aws: "CloudWatch metric joined with the job registry" },
+  "context-model": { title: "Temperature off the curve for this load", cat: "ctx", sensor: "rules", aws: "Custom metric, CloudWatch anomaly band" },
+  "outbound-volume": { title: "Sustained transfer to an unapproved peer", cat: "inv", sensor: "rules", aws: "Zeek conn.log; GuardDuty Behavior:EC2/TrafficVolumeUnusual is similar" },
+  "port-spread": { title: "Many ports probed on one host", cat: "sec", sensor: "rules", aws: "VPC Flow Logs REJECT records" },
+  "periodic-connection": { title: "Beacon-like rhythm", cat: "inv", sensor: "rules", aws: "Resolver query logs or Zeek" },
+  "honeypot-contact": { title: "Decoy service touched", cat: "sec", sensor: "decoy", aws: "OpenCanary event" },
+  "compute-network-overlap": { title: "Unapproved compute overlaps a large transfer", cat: "inv", sensor: "rules", aws: "Join of GPU metrics and flow data" },
+  "access-policy-violation": { title: "Request denied by policy", cat: "inv", sensor: "cloudtrail", aws: "CloudTrail AccessDenied event" },
+  "integrity-failure": { title: "Artifact failed integrity verification", cat: "sec", sensor: "objectlock", aws: "Signed manifest check against KMS" },
+  "artifact-write": { title: "Artifact written outside the release pipeline", cat: "inv", sensor: "cloudtrail", aws: "CloudTrail PutObject data event" },
+  "egress-denied": { title: "Egress to a non-allowlisted destination denied", cat: "sec", sensor: "egress", aws: "Network Firewall alert log" },
+  "dns-blocked": { title: "DNS lookup of a blocked domain", cat: "sec", sensor: "dnsfw", aws: "Resolver DNS Firewall log" },
+};
+function raise(rule, subject, o = {}) {
+  const info = RULES[rule] || { title: rule, cat: o.cat || "sec", sensor: o.sensor || "guardduty", aws: o.aws || "" };
+  const sensor = o.sensor || info.sensor;
+  if (!defenseOn[sensor]) return null;
+  const key = `${rule}|${subject}`;
+  const open = sim.findings.find((f) => f.key === key && (f.status === "open" || f.status === "authorized test") && sim.t - f.last <= 15);
+  if (open) { open.last = sim.t; return open; }
+  const pirate = o.pirate || pirateFor(subject);
+  const f = { key, id: sim.findings.length + 1, t: sim.t, last: sim.t, rule, title: info.title, cat: o.cat || info.cat, subject, sensor, aws: o.aws || info.aws, pirate: pirate ? pirate.id : null, authorized: !!(pirate && pirate.authorized), status: "open" };
+  if (pirate && pirate.authorized) f.status = "authorized test";
+  sim.findings.unshift(f);
+  if (sim.findings.length > 400) sim.findings.length = 400;
+  if (pirate) {
+    pirate.detections.push(rule);
+    if (pirate.firstDetect == null) { pirate.firstDetect = sim.t; }
+  }
+  if (rule !== "context-model") say(`${pirate && pirate.authorized ? "Authorized test detected: " : "Detected: "}${f.title} on ${subject}${sensor === "guardduty" ? ` (${rule})` : ""}`, pirate && pirate.authorized ? "rt" : "detect");
+  return f;
+}
+function guardduty(type, subject, pirate, delay = 8) {
+  // GuardDuty findings usually arrive minutes after the activity; compressed here.
+  sim.scheduled.push({ at: sim.t + delay, fn: () => raise(type, subject, { sensor: "guardduty", cat: type.startsWith("Recon") || type.startsWith("Discovery") ? "inv" : "sec", aws: "GuardDuty finding type", pirate }) });
+}
+function pirateFor(subject) {
+  return sim.pirates.find((p) => p.phase !== "done" && (p.node === subject || p.ip === subject || p.target === subject || p.subjects.has(subject))) || null;
+}
+
+// ---------------------------------------------------------------- traffic records
+function conn(src, dst, port, bytes, o = {}) {
+  const c = { t: sim.t + (o.dt || 0), src, dst, port, bytes, delivered: o.blockedBy ? 120 : bytes, blockedBy: o.blockedBy || null, kind: o.kind || "tcp", pirate: o.pirate ? o.pirate.id : null };
+  sim.conns.push(c);
+  if (c.blockedBy) sim.totals.blocked++;
+  return c;
+}
+function auditEvent(actor, action, resource, decision, o = {}) {
+  sim.audit.push({ t: sim.t, actor, action, resource, decision, pirate: o.pirate ? o.pirate.id : null });
+}
+
+// ---------------------------------------------------------------- packets and flashes (visual only)
+const packets = [], flashes = [];
+function send(path, color, o = {}) {
+  if (!ui.traffic && !o.always) return;
+  if (packets.length > 260) return;
+  const segs = []; let total = 0;
+  for (let i = 1; i < path.length; i++) { const l = Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y, path[i].z - path[i - 1].z); segs.push(l); total += l; }
+  packets.push({ path, segs, total, d: 0, speed: o.speed || 18, color, r: o.r || 0.32, stopAt: o.stopAt ?? null, onStop: o.onStop, glow: !!o.glow });
+}
+function flash(p, color, text) { flashes.push({ p, color, text, age: 0 }); }
+function pathNodeToSpine(n) { return [nodeCenter(n), P(n.x + 1.3, 0.6, aisleZ(n)), P(5, 0.6, aisleZ(n)), P(5, 0.6, PTS.spine.z), PTS.spine]; }
+const pathSpineTo = (pt) => [PTS.spine, P(pt.x, 0.6, PTS.spine.z), pt];
+const pathSpineToData = (pt) => [PTS.spine, P(PTS.spine.x, 0.6, 9.5), P(pt.x, 0.6, 9.5), pt];
+const reverse = (a) => a.slice().reverse();
+function shipPoint(p) { return P(p.ship.x, 1.2, p.ship.z); }
+
+// ---------------------------------------------------------------- workload and telemetry
+function stepWorkload() {
+  // Jobs finish, new approved training jobs start on idle GPUs.
+  sim.jobs = sim.jobs.filter((j) => {
+    if (sim.t < j.end && j.nodes.length) return true;
+    j.nodes.forEach((id) => { const n = nodeById(id); if (n && n.job === j.id) n.job = null; });
+    return false;
+  });
+  const idle = sim.nodes.filter((n) => !n.job && !n.hijackedBy && sim.t >= n.quarantinedUntil);
+  const busyShare = 1 - idle.length / sim.nodes.length;
+  if (idle.length >= 4 && busyShare < 0.72 && rng() < 0.12) {
+    const size = Math.min(idle.length, pickOne([4, 4, 8, 8, 12]));
+    const start = Math.floor(rand(0, idle.length - size + 1));
+    const chosen = idle.slice(start, start + size);
+    const job = { id: `train-${String(++sim.jobSeq).padStart(4, "0")}`, nodes: chosen.map((n) => n.id), end: sim.t + rand(70, 200) };
+    chosen.forEach((n) => (n.job = job.id));
+    sim.jobs.push(job);
+    say(`Scheduler starts approved job ${job.id} on ${size} GPUs`, "ops");
+  }
+  // Facilities events that are not attacks.
+  if (!sim.cooling && sim.t > 40 && rng() < 0.006) {
+    const rack = 1 + Math.floor(rng() * sim.racks);
+    sim.cooling = { rack, until: sim.t + 28 };
+    say(`Facilities: cooling unit serving rack ${rack} loses airflow`, "ops");
+  }
+  if (sim.cooling && sim.t >= sim.cooling.until) { say(`Facilities: airflow restored on rack ${sim.cooling.rack}`, "ops"); sim.cooling = null; }
+  if (!sim.drift && sim.t > 60 && rng() < 0.005) {
+    const n = pickOne(sim.nodes);
+    sim.drift = { node: n.id, until: sim.t + 25 };
+  }
+  if (sim.drift && sim.t >= sim.drift.until) sim.drift = null;
+
+  for (const n of sim.nodes) {
+    let target;
+    if (sim.t < n.quarantinedUntil) target = 0;
+    else if (n.hijackedBy) target = rand(97, 100);
+    else if (n.job) target = rand(84, 96);
+    else target = rand(6, 24);
+    n.util = clamp(n.util + (target - n.util) * 0.45 + rand(-1.5, 1.5), 0, 100);
+    let temp = 42 + 0.3 * n.util + rand(-2, 2);
+    if (sim.cooling && n.rack === sim.cooling.rack) temp += 18 + rand(0, 4);
+    if (sim.drift && sim.drift.node === n.id && !n.job) temp += 12;
+    if (sim.t < n.quarantinedUntil) temp = 30 + rand(-1, 1);
+    n.temp = temp;
+    n.power = sim.t < n.quarantinedUntil ? 8 : 45 + 2.4 * n.util + rand(-4, 4);
+    n.mem = sim.t < n.quarantinedUntil ? 0 : 800 + 85 * n.util + rand(-40, 40);
+    n.expected = 42 + 0.3 * n.util;
+    n.score = sim.t < n.quarantinedUntil ? 0 : (n.temp - n.expected) / 1.15;
+    n.hist.push(n.temp); if (n.hist.length > 60) n.hist.shift();
+  }
+
+  // Approved traffic: storage reads through the endpoint, API polling, all-reduce.
+  for (const j of sim.jobs) {
+    if (sim.t % 2 === 0) {
+      const n = nodeById(pickOne(j.nodes));
+      if (n) { conn(n.id, "vpce-s3", 443, Math.round(rand(4e6, 8e6))); if (rng() < 0.5) send(reverse(pathSpineToData(PTS.endpoint)).concat(reverse(pathNodeToSpine(n)).slice(1)), C.blue, { r: 0.26 }); }
+    }
+    if (rng() < 0.5 && j.nodes.length > 1) { const a = nodeById(pickOne(j.nodes)); if (a) send(pathNodeToSpine(a), C.teal, { r: 0.22 }); }
+  }
+  if (sim.t % 2 === 0 && sim.nodes.length) { const n = pickOne(sim.nodes); if (!n.hijackedBy && sim.t >= n.quarantinedUntil) conn(n.id, "api.internal", 8080, 220); }
+}
+
+// ---------------------------------------------------------------- detection engine
+// The same rules and thresholds as the repository's lab, evaluated every simulated second.
+function detect() {
+  const t = sim.t;
+  for (const n of sim.nodes) {
+    if (t < n.quarantinedUntil) continue;
+    if (n.temp >= CFG.thermal) raise("thermal", n.id);
+    if (n.util >= CFG.unapproved && !n.job) raise("unapproved-compute", n.id);
+    if (Math.abs(n.score) >= CFG.contextZ && n.temp < CFG.thermal) raise("context-model", n.id);
+  }
+  const recent = sim.conns.filter((c) => c.t > t - CFG.volumeWindow);
+  // outbound-volume: delivered bytes to one unapproved peer within 60 s
+  const vol = new Map();
+  recent.forEach((c) => { if (!APPROVED_DEST.has(c.dst) && c.kind === "tcp" && nodeById(c.src)) vol.set(`${c.src}|${c.dst}`, (vol.get(`${c.src}|${c.dst}`) || 0) + c.delivered); });
+  vol.forEach((bytes, key) => { if (bytes >= CFG.volumeBytes) raise("outbound-volume", key.split("|")[0]); });
+  // port-spread: six distinct ports on one host from one source within 20 s (flow logs see rejects too)
+  const ports = new Map();
+  recent.filter((c) => c.t > t - CFG.portWindow && c.kind === "probe").forEach((c) => { const k = `${c.src}|${c.dst}`; if (!ports.has(k)) ports.set(k, new Set()); ports.get(k).add(c.port); });
+  ports.forEach((set, key) => { if (set.size >= CFG.portThreshold) raise("port-spread", key.split("|")[1]); });
+  // periodic-connection: six or more contacts to one unapproved peer, regular spacing
+  const groups = new Map();
+  sim.conns.filter((c) => c.t > t - 120 && !APPROVED_DEST.has(c.dst) && (c.kind === "dns" || c.kind === "tcp")).forEach((c) => { const k = `${c.src}|${c.dst}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c.t); });
+  groups.forEach((times, key) => {
+    const last = times.slice(-10);
+    if (last.length < CFG.beaconMin) return;
+    const gaps = last.slice(1).map((v, i) => v - last[i]);
+    if (Math.min(...gaps) <= 0 || mean(gaps) > 30) return;
+    if (pstdev(gaps) / mean(gaps) <= CFG.beaconCv) raise("periodic-connection", key.split("|")[0]);
+  });
+  // compute-network-overlap: unapproved GPU use within 5 s of a large transfer from that node
+  recent.filter((c) => c.t > t - CFG.corrSeconds && c.delivered >= CFG.transferBytes && !APPROVED_DEST.has(c.dst)).forEach((c) => {
+    const n = nodeById(c.src);
+    if (n && n.util >= CFG.unapproved && !n.job) raise("compute-network-overlap", n.id);
+  });
+  // decoy contact and audit events
+  sim.decoyHits.filter((h) => h.t === t).forEach((h) => raise("honeypot-contact", "decoy", { pirate: sim.pirates.find((p) => p.id === h.pirate) }));
+  sim.audit.filter((a) => a.t === t).forEach((a) => {
+    const pirate = sim.pirates.find((p) => p.id === a.pirate);
+    if (a.decision === "deny") raise("access-policy-violation", a.resource, { pirate });
+    if (a.decision === "integrity") raise("integrity-failure", a.resource, { pirate });
+    if (a.decision === "unusual-write") raise("artifact-write", a.resource, { pirate });
+  });
+  // Close findings whose condition has been quiet for 15 s.
+  sim.findings.forEach((f) => { if (f.status === "open" && t - f.last > 15) f.status = f.cat === "op" ? "cleared" : "closed"; });
+  // Containment: an analyst approves quarantine for a GPU with an open security finding.
+  if (defenseOn.contain) {
+    sim.findings.filter((f) => f.status === "open" && !f.authorized && ["unapproved-compute", "outbound-volume", "egress-denied", "dns-blocked", "periodic-connection", "compute-network-overlap"].includes(f.rule) && nodeById(f.subject)).forEach((f) => {
+      const n = nodeById(f.subject);
+      if (n.contained || t - f.t < 5) return;
+      n.contained = true;
+      n.quarantinedUntil = t + 40;
+      n.hijackedBy = null;
+      if (n.job) { const job = sim.jobs.find((j) => j.id === n.job); if (job) job.nodes = job.nodes.filter((id) => id !== n.id); n.job = null; }
+      f.status = "contained";
+      say(`Analyst approves quarantine of ${n.id}: quarantine security group applied, node will be re-imaged`, "block");
+      sim.scheduled.push({ at: t + 40, fn: () => { n.contained = false; say(`${n.id} re-imaged from the golden image and returned to the pool`, "ops"); } });
+    });
+  }
+  sim.conns = sim.conns.filter((c) => c.t > t - 130);
+  sim.audit = sim.audit.filter((a) => a.t > t - 5);
+  sim.decoyHits = sim.decoyHits.filter((h) => h.t > t - 5);
+}
+
+// ---------------------------------------------------------------- data pirates
+const extIp = (n) => `203.0.113.${n}`;
+const PIRATES = {
+  scouts: {
+    name: "Port Scouts", kind: "Reconnaissance scan", attack: "T1046 Network Service Discovery", color: [255, 196, 87],
+    story: "Scan the inference endpoint and the hall for open services",
+    script(p, e) {
+      if (e === 0) { p.target = pickOne(sim.nodes.slice(0, 8)).id; say(`Port Scouts from ${p.ip} start probing ${p.target} and the decoy`, "pirate"); }
+      if (e >= 1 && e <= 7) {
+        const port = [21, 22, 23, 80, 443, 3389, 8888][e - 1];
+        const blocked = defenseOn.sg ? "sg" : null;
+        conn(p.ip, p.target, port, 0, { kind: "probe", blockedBy: blocked, pirate: p });
+        send([shipPoint(p), PTS.alb], C.red, { r: 0.34, stopAt: blocked ? 1 : null, glow: true, always: true });
+        if (blocked) flash(PTS.alb, C.green, "SG deny");
+        else send([PTS.alb, PTS.spine, ...reverse(pathNodeToSpine(nodeById(p.target))).slice(1)], C.red, { glow: true, always: true });
+        conn(p.ip, "decoy", port, 0, { kind: "probe", pirate: p });
+        if (defenseOn.decoy && e === 4) { sim.decoyHits.push({ t: sim.t, src: p.ip, pirate: p.id }); send([shipPoint(p), PTS.alb, P(PTS.decoy.x, 0.6, 7), PTS.decoy], C.red, { glow: true, always: true }); }
+      }
+      if (e === 8) {
+        if (!defenseOn.sg) { p.exposed = true; say(`Port Scouts find a notebook server open on ${p.target}:8888. A foothold is now possible.`, "loss"); guardduty("Recon:EC2/PortProbeUnprotectedPort", p.target, p, 6); }
+        else { p.prevented.push("Security groups dropped every probe"); say("Every probe hits a closed door. The scouts learn nothing useful.", "block"); }
+      }
+      if (e === 12 && p.firstDetect != null && defenseOn.contain) say(`Analyst adds ${p.ip} to the Network Firewall deny list`, "block");
+      return e >= 14;
+    },
+  },
+  miners: {
+    name: "Cryptojackers", kind: "GPU hijacking", attack: "T1195.002 compromised image, then T1496 Resource Hijacking", color: [211, 108, 240],
+    story: "Ride a tainted container image onto an idle GPU and mine",
+    script(p, e) {
+      if (e === 0) {
+        const idle = sim.nodes.filter((n) => !n.job && !n.hijackedBy && sim.t >= n.quarantinedUntil);
+        const n = idle.length ? pickOne(idle) : pickOne(sim.nodes);
+        p.node = n.id;
+        say(`A job pulls a tainted container image onto ${n.id}. Cryptojackers are aboard.`, "pirate");
+        send([shipPoint(p), PTS.nat, PTS.spine, ...reverse(pathNodeToSpine(n)).slice(1)], C.magenta, { glow: true, always: true });
+      }
+      const n = nodeById(p.node);
+      if (!n) return true;
+      if (e === 2 && sim.t >= n.quarantinedUntil) { n.hijackedBy = p.id; say(`Miner starts on ${n.id} with no approved job attached`, "pirate"); }
+      if (e >= 3 && e % 5 === 3 && n.hijackedBy === p.id) {
+        const dnsBlocked = defenseOn.dnsfw;
+        conn(n.id, "pool.mining.example", 53, 90, { kind: "dns", blockedBy: dnsBlocked ? "dnsfw" : null, pirate: p });
+        send([...pathNodeToSpine(n), ...pathSpineTo(PTS.dnsfw).slice(1)], C.magenta, { stopAt: dnsBlocked ? 99 : null, glow: true, always: true });
+        if (e === 3) guardduty("CryptoCurrency:EC2/BitcoinTool.B!DNS", n.id, p, 7);
+        if (dnsBlocked) { flash(PTS.dnsfw, C.green, "NXDOMAIN"); sim.totals.dnsBlocked++; raise("dns-blocked", n.id, { pirate: p }); p.prevented.push("DNS firewall refused the mining pool"); }
+        else {
+          const egressBlocked = defenseOn.egress;
+          conn(n.id, "198.51.100.23", 443, 4000, { blockedBy: egressBlocked ? "egress" : null, pirate: p });
+          send([...pathNodeToSpine(n), ...pathSpineTo(PTS.nat).slice(1), P(40, 1, PTS.nat.z)], C.magenta, { stopAt: egressBlocked ? 99 : null, glow: true, always: true });
+          if (egressBlocked) { flash(PTS.nat, C.green, "egress deny"); raise("egress-denied", n.id, { pirate: p }); p.prevented.push("Egress allowlist refused the pool"); }
+          else p.poolReachable = true;
+        }
+      }
+      if (n.hijackedBy === p.id) { p.gpuSeconds = (p.gpuSeconds || 0) + 1; if (p.poolReachable) sim.totals.stolenGpuSeconds++; }
+      if (e === 40 && n.hijackedBy === p.id) say(`The miner is still running on ${n.id}. Nobody has noticed yet.`, "loss");
+      return e >= 45 || (e > 3 && n.hijackedBy !== p.id);
+    },
+  },
+  grab: {
+    name: "Smash-and-Grab Crew", kind: "Bulk exfiltration", attack: "T1078 valid token, T1041 exfiltration", color: [255, 107, 107],
+    story: "Use a stolen notebook token inside an approved job and push the dataset out",
+    script(p, e) {
+      if (e === 0) {
+        const busy = sim.nodes.filter((n) => n.job && sim.t >= n.quarantinedUntil);
+        const n = busy.length ? pickOne(busy) : pickOne(sim.nodes);
+        p.node = n.id;
+        say(`Smash-and-Grab Crew uses a stolen notebook token to run code on ${n.id}, inside approved job ${n.job || "none"}`, "pirate");
+        send([shipPoint(p), PTS.alb, PTS.spine, ...reverse(pathNodeToSpine(n)).slice(1)], C.red, { glow: true, always: true });
+      }
+      const n = nodeById(p.node);
+      if (!n || sim.t < n.quarantinedUntil) return e > 1;
+      if (e >= 2 && e <= 4) { conn(n.id, "vpce-s3", 443, 6e6); send(reverse(pathSpineToData(PTS.s3)).concat(reverse(pathNodeToSpine(n)).slice(1)), C.blue, { always: true }); if (e === 2) say("They read the training dataset through the normal storage path. That part looks legitimate.", "pirate"); }
+      if (e >= 5 && e <= 15 && e % 2 === 1) {
+        const blocked = defenseOn.egress;
+        conn(n.id, extIp(50), 443, 40e6, { blockedBy: blocked ? "egress" : null, pirate: p });
+        send([...pathNodeToSpine(n), ...pathSpineTo(PTS.nat).slice(1), shipPoint(p)], C.red, { stopAt: blocked ? 7 : null, glow: true, always: true, r: 0.42 });
+        if (blocked) { flash(PTS.nat, C.green, "not on allowlist"); raise("egress-denied", n.id, { pirate: p }); if (!p.prevented.length) p.prevented.push("Egress allowlist refused the destination"); }
+        else { p.lost += 40e6; if (e === 5) guardduty("Behavior:EC2/TrafficVolumeUnusual", n.id, p, 9); }
+      }
+      return e >= 17;
+    },
+  },
+  beacon: {
+    name: "Ghost Beacon", kind: "C2 and DNS tunneling", attack: "T1071.004 DNS C2, T1048 exfiltration over DNS", color: [108, 156, 255],
+    story: "Plant an implant that checks in over DNS and leaks data a little at a time",
+    script(p, e) {
+      if (e === 0) { const n = pickOne(sim.nodes); p.node = n.id; say(`Ghost Beacon implant on ${n.id} begins checking in over DNS`, "pirate"); }
+      const n = nodeById(p.node);
+      if (!n || sim.t < n.quarantinedUntil) return e > 1;
+      if (e >= 1 && e <= 44 && e % 4 === 1) {
+        const blocked = defenseOn.dnsfw;
+        conn(n.id, "cdn-sync.example", 53, 180, { kind: "dns", blockedBy: blocked ? "dnsfw" : null, pirate: p, dt: rand(-0.25, 0.25) });
+        send([...pathNodeToSpine(n), ...pathSpineTo(PTS.dnsfw).slice(1), P(41, 1, 0)], C.blue, { stopAt: blocked ? 7 : null, glow: true, always: true });
+        if (e === 1) guardduty("Backdoor:EC2/C&CActivity.B!DNS", n.id, p, 10);
+        if (blocked) { flash(PTS.dnsfw, C.green, "blocked domain"); sim.totals.dnsBlocked++; raise("dns-blocked", n.id, { pirate: p }); if (!p.prevented.length) p.prevented.push("DNS firewall blocked the C2 domain"); }
+        else { p.lost += 180; if (e === 17) guardduty("Trojan:EC2/DNSDataExfiltration", n.id, p, 6); }
+      }
+      return e >= 46;
+    },
+  },
+  keys: {
+    name: "Key Snatchers", kind: "Credential theft", attack: "T1552.005 cloud instance metadata, T1078.004 cloud accounts", color: [255, 160, 90],
+    story: "Use SSRF on the inference API to steal the GPU's role credentials, then read the bucket from home",
+    script(p, e) {
+      if (e === 0) { const n = pickOne(sim.nodes); p.node = n.id; say(`Key Snatchers send an SSRF request through the inference API to make ${n.id} fetch its own metadata`, "pirate"); send([shipPoint(p), PTS.alb, PTS.spine, ...reverse(pathNodeToSpine(n)).slice(1)], C.red, { glow: true, always: true }); }
+      const n = nodeById(p.node);
+      if (e === 3) {
+        if (defenseOn.imds) { flash(nodeCenter(n), C.green, "IMDSv2: token required"); p.prevented.push("IMDSv2 refused a request without a session token"); say("Metadata service demands a session token the SSRF cannot obtain. No credentials leave.", "block"); p.done = true; }
+        else { p.stole = true; say(`Role credentials for ${n.id} leak back to the ship`, "loss"); send([...pathNodeToSpine(n), PTS.spine, PTS.alb, shipPoint(p)], C.red, { glow: true, always: true }); }
+      }
+      if (p.done) return e >= 6;
+      if (e === 7) guardduty("UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS", n.id, p, 8);
+      if (e >= 8 && e <= 12) {
+        const denied = defenseOn.perimeter;
+        send([shipPoint(p), P(38, 1, 22), P(PTS.s3.x, 1, 22), PTS.s3], C.red, { stopAt: denied ? 3 : null, glow: true, always: true });
+        auditEvent(`role/${n.id}-instance (used from ${p.ip})`, "s3:GetObject", "training-data", denied ? "deny" : "allow", { pirate: p });
+        if (denied) { flash(PTS.s3, C.green, "aws:SourceVpce deny"); if (!p.prevented.length) p.prevented.push("Bucket policy refused requests from outside the VPC"); }
+        else { p.lost += 400e6; if (e === 9) guardduty("Exfiltration:S3/AnomalousBehavior", "training-data", p, 7); }
+      }
+      if (e === 14 && p.firstDetect != null && defenseOn.contain) say("Analyst revokes the role's active sessions and rotates its credentials", "block");
+      return e >= 16;
+    },
+  },
+  poison: {
+    name: "Model Poisoners", kind: "Artifact tampering", attack: "T1565.001 stored data manipulation", color: [242, 169, 59],
+    story: "Use a compromised CI runner to slip a tampered model into the bucket",
+    script(p, e) {
+      if (e === 0) { p.target = "model:fraud-detector"; say("Model Poisoners take over a CI runner inside the VPC and upload model v8, quietly altered", "pirate"); send([shipPoint(p), PTS.nat, PTS.spine, ...pathSpineToData(PTS.s3).slice(1)], C.amber, { glow: true, always: true }); }
+      if (e === 3) {
+        auditEvent("ci-runner-07", "s3:PutObject", p.target, "unusual-write", { pirate: p });
+        say("A new version lands. Object Lock protects the approved version, but it cannot stop new versions being written.", "pirate");
+      }
+      if (e === 6) {
+        send([PTS.s3, P(PTS.s3.x, 0.6, 9.5), P(PTS.spine.x, 0.6, 9.5), PTS.spine], C.amber, { always: true });
+        if (defenseOn.objectlock) { auditEvent("serving", "verify-manifest", p.target, "integrity", { pirate: p }); flash(PTS.kms, C.green, "signature mismatch"); p.prevented.push("Serving refused v8: not the version named in the KMS-signed pointer"); say("Serving checks the signed pointer, rejects v8, and keeps the approved v7", "block"); }
+        else { p.poisoned = true; say("Serving loads v8. A tampered model is now answering requests.", "loss"); }
+      }
+      return e >= 9;
+    },
+  },
+  ransom: {
+    name: "Ransom Raiders", kind: "Destroy recovery, then extort", attack: "T1490 inhibit system recovery, T1486 data encrypted for impact", color: [255, 90, 120],
+    story: "With a stolen admin session, delete the backups first, then encrypt",
+    script(p, e) {
+      if (e === 0) { p.target = "backup-vault"; say("Ransom Raiders arrive with a stolen admin session and head for the backup vault", "pirate"); send([shipPoint(p), PTS.nat, PTS.spine, ...pathSpineToData(PTS.backup).slice(1)], C.red, { glow: true, always: true }); }
+      if (e >= 3 && e <= 7) {
+        const locked = defenseOn.vaultlock;
+        auditEvent("admin-session (stolen)", "backup:DeleteRecoveryPoint", "backup-vault", locked ? "deny" : "allow", { pirate: p });
+        send([PTS.spine, ...pathSpineToData(PTS.backup).slice(1)], C.red, { stopAt: locked ? 99 : null, glow: true, always: true });
+        if (locked) { flash(PTS.backup, C.green, "Vault Lock"); if (!p.prevented.length) p.prevented.push("Vault Lock refused every delete, even for an admin"); }
+        else p.recoveryLost = (p.recoveryLost || 0) + 1;
+        if (e === 4) guardduty("Impact:S3/AnomalousBehavior.Delete", "backup-vault", p, 8);
+      }
+      if (e === 10) {
+        if (defenseOn.objectlock) { p.prevented.push("Object Lock kept the original versions; encrypted copies are only new versions"); say("Encryption attempts only create new versions. The locked originals are untouched.", "block"); }
+        else { p.lost += 2.4e9; say("Dataset objects are overwritten with encrypted copies", "loss"); }
+      }
+      return e >= 12;
+    },
+  },
+};
+
+function launchPirate(type) {
+  const def = PIRATES[type];
+  const z = rand(-14, 14);
+  const p = { id: `P${++sim.pirateSeq}`, type, def, ip: extIp(10 + Math.floor(rand(0, 200))), start: sim.t, phase: "sailing", ship: { x: 58, z, tx: 38.5, tz: z }, actStart: null, firstDetect: null, detections: [], prevented: [], lost: 0, subjects: new Set(), authorized: false };
+  sim.pirates.push(p);
+  say(`${def.name} sighted off the edge (${def.kind})`, "pirate");
+  ui.banner = { text: `${def.name}: ${def.story}. ${def.attack}.`, until: sim.t + 10, rt: false };
+  return p;
+}
+function finishPirate(p) {
+  p.phase = "leaving";
+  p.ship.tx = 62;
+  const lost = p.lost > 0 || p.poisoned || p.recoveryLost || p.exposed || (p.gpuSeconds && !p.prevented.length);
+  const detected = p.firstDetect != null;
+  const verdict = !lost && detected ? "Repelled" : !lost ? "Blocked quietly" : detected ? "Caught after loss" : "Undetected loss";
+  const what = [];
+  if (p.lost) what.push(mb(p.lost) + " taken");
+  if (p.poisoned) what.push("tampered model served");
+  if (p.recoveryLost) what.push(`${p.recoveryLost} recovery points deleted`);
+  if (p.exposed) what.push("open service exposed");
+  if (p.gpuSeconds && !p.prevented.length) what.push(`${p.gpuSeconds} GPU-seconds hijacked`);
+  sim.totals.lost += p.lost;
+  if (p.firstDetect != null) sim.totals.ttd.push(p.firstDetect - p.actStart);
+  const record = { id: p.id, t: p.start, name: p.def.name, kind: p.def.kind, attack: p.def.attack, verdict, ttd: p.firstDetect != null ? p.firstDetect - p.actStart : null, prevented: p.prevented.slice(), detections: [...new Set(p.detections)], what: what.join(", ") || "nothing" };
+  sim.incidents.unshift(record);
+  say(`${p.def.name}: ${verdict}${record.what !== "nothing" ? ` (${record.what})` : ""}`, verdict === "Repelled" ? "block" : verdict === "Blocked quietly" ? "info" : "loss");
+}
+
+// ---------------------------------------------------------------- authorized red team
+const RT_TESTS = [
+  { id: "fast-scan", name: "Fast port scan of gpu-01 and the decoy", control: "Security groups, port-spread rule, decoy", expect: "Blocked and detected", start: 0, end: 10 },
+  { id: "slow-scan", name: "Slow scan, one port every 5 s", control: "port-spread rule (20 s window)", expect: "Detected", start: 12, end: 48 },
+  { id: "jitter-beacon", name: "DNS beacon with 35% jitter to a test domain (C2 test pre-authorized with AWS)", control: "DNS firewall, periodic-connection rule", expect: "Blocked and detected", start: 50, end: 84 },
+  { id: "outside-creds", name: "Test credential used from outside the VPC on the test bucket", control: "Data perimeter, CloudTrail", expect: "Blocked and detected", start: 86, end: 92 },
+  { id: "canary-model", name: "Overwrite the canary model artifact", control: "Signed manifest pointer, Object Lock", expect: "Blocked and detected", start: 94, end: 100 },
+  { id: "test-backup", name: "Delete a test recovery point", control: "Vault Lock, CloudTrail", expect: "Blocked and detected", start: 102, end: 108 },
+];
+function startRedTeam() {
+  if (sim.redteam && sim.redteam.phase !== "done") return;
+  const p = { id: `RT${++sim.pirateSeq}`, type: "redteam", authorized: true, def: { name: "Red team RT-2026-11", kind: "Authorized test", color: C.teal }, ip: "10.0.250.10", start: sim.t, phase: "sailing", ship: { x: -50, z: 0, tx: -38, tz: 0 }, actStart: null, firstDetect: null, detections: [], prevented: [], lost: 0, subjects: new Set(), results: {} };
+  sim.redteam = p; sim.pirates.push(p); sim.rtReport = [];
+  auditEvent("security-lead", "approve-engagement", "RT-2026-11", "allow");
+  say("Engagement RT-2026-11 approved. Testers connect through Session Manager; every finding they cause will be labeled authorized.", "rt");
+  ui.banner = { text: "Authorized red team RT-2026-11 in progress. Findings are real detections, labeled and deconflicted.", until: sim.t + 12, rt: true };
+}
+function redTeamScript(p, e) {
+  const gpu1 = nodeById("gpu-01");
+  const test = RT_TESTS.find((t) => e >= t.start && e <= t.end);
+  if (test && !p.results[test.id]) { p.results[test.id] = { blocked: false, detected: [], t0: sim.t }; say(`Red team test: ${test.name}`, "rt"); p.current = test.id; }
+  const r = test ? p.results[test.id] : null;
+  const local = test ? e - test.start : 0;
+  const tag = (subject) => p.subjects.add(subject);
+  if (test && test.id === "fast-scan" && local >= 1 && local <= 7) {
+    tag("gpu-01"); tag("decoy");
+    const port = [21, 22, 23, 80, 443, 3389, 8888][local - 1];
+    conn(p.ip, "gpu-01", port, 0, { kind: "probe", blockedBy: defenseOn.sg ? "sg" : null, pirate: p });
+    send([PTS.bastion, P(-30, 0.6, 0), P(-30, 0.6, gpu1.z + 2.6), nodeCenter(gpu1)], C.teal, { stopAt: defenseOn.sg ? 3 : null, glow: true, always: true });
+    if (defenseOn.sg) r.blocked = true;
+    if (local === 4 && defenseOn.decoy) { sim.decoyHits.push({ t: sim.t, src: p.ip, pirate: p.id }); send([PTS.bastion, P(-30, 0.6, 9.5), P(PTS.decoy.x, 0.6, 9.5), PTS.decoy], C.teal, { glow: true, always: true }); }
+  }
+  if (test && test.id === "slow-scan" && local % 5 === 0 && local <= 30) {
+    tag("gpu-02");
+    conn(p.ip, "gpu-02", [21, 22, 23, 80, 443, 3389, 8888][local / 5], 0, { kind: "probe", blockedBy: defenseOn.sg ? "sg" : null, pirate: p });
+    const g2 = nodeById("gpu-02") || gpu1;
+    send([PTS.bastion, P(-30, 0.6, 0), P(-30, 0.6, g2.z + 2.6), nodeCenter(g2)], C.teal, { stopAt: defenseOn.sg ? 3 : null, glow: true, always: true });
+    if (defenseOn.sg) r.blocked = true;
+  }
+  if (test && test.id === "jitter-beacon") {
+    tag("gpu-03");
+    const offsets = [1, 5, 7.6, 13, 16, 21.2, 24, 29];
+    offsets.forEach((o) => {
+      if (local === Math.floor(o)) {
+        const g3 = nodeById("gpu-03") || gpu1;
+        conn("gpu-03", "rt-test-c2.example", 53, 120, { kind: "dns", blockedBy: defenseOn.dnsfw ? "dnsfw" : null, pirate: p, dt: o - Math.floor(o) });
+        send([...pathNodeToSpine(g3), ...pathSpineTo(PTS.dnsfw).slice(1)], C.teal, { stopAt: defenseOn.dnsfw ? 99 : null, glow: true, always: true });
+        if (defenseOn.dnsfw) { r.blocked = true; raise("dns-blocked", "gpu-03", { pirate: p }); }
+      }
+    });
+  }
+  if (test && test.id === "outside-creds" && local === 2) {
+    tag("qdc-redteam-test");
+    auditEvent("rt-test-user (from outside the VPC)", "s3:GetObject", "qdc-redteam-test", defenseOn.perimeter ? "deny" : "allow", { pirate: p });
+    send([PTS.bastion, P(-34, 1, 22), P(PTS.s3.x, 1, 22), PTS.s3], C.teal, { stopAt: defenseOn.perimeter ? 3 : null, glow: true, always: true });
+    if (defenseOn.perimeter) r.blocked = true;
+  }
+  if (test && test.id === "canary-model" && local === 2) {
+    tag("model:canary");
+    auditEvent("rt-tester", "s3:PutObject", "model:canary", "unusual-write", { pirate: p });
+    if (defenseOn.objectlock) { r.blocked = true; auditEvent("serving", "verify-manifest", "model:canary", "integrity", { pirate: p }); }
+    send([PTS.bastion, P(-30, 0.6, 9.5), P(PTS.s3.x, 0.6, 9.5), PTS.s3], C.teal, { glow: true, always: true });
+  }
+  if (test && test.id === "test-backup" && local === 2) {
+    tag("rt-recovery-point");
+    auditEvent("rt-tester", "backup:DeleteRecoveryPoint", "rt-recovery-point", defenseOn.vaultlock ? "deny" : "allow", { pirate: p });
+    send([PTS.bastion, P(-30, 0.6, 9.5), P(PTS.backup.x, 0.6, 9.5), PTS.backup], C.teal, { stopAt: defenseOn.vaultlock ? 3 : null, glow: true, always: true });
+    if (defenseOn.vaultlock) r.blocked = true;
+  }
+  // When a test window ends, grade it from what the detectors actually raised.
+  RT_TESTS.forEach((t) => {
+    const res = p.results[t.id];
+    if (!res || res.graded || e < t.end) return;
+    res.graded = true;
+    const found = sim.findings.filter((f) => f.pirate === p.id && f.t >= res.t0 && f.t <= sim.t).map((f) => f.rule);
+    res.detected = [...new Set(found)];
+    let verdict = "Pass", fix = "";
+    const blockNeeded = t.expect.startsWith("Blocked");
+    if (t.id === "slow-scan" && !res.detected.includes("port-spread")) { verdict = "Gap"; fix = "Slow scans evade the 20 s window, as the seeded evaluation measured (recall 0.76). Add a 5 minute distinct-port count, or alert on flow log REJECT bursts per source."; }
+    else if (t.id === "jitter-beacon" && !res.detected.includes("periodic-connection")) { verdict = res.blocked ? "Partial" : "Gap"; fix = "Jitter above the 0.25 variation limit hides the rhythm. The DNS firewall blocks it, so alert on every block, and add a domain-age or entropy check."; }
+    else if (blockNeeded && !res.blocked) { verdict = "Gap"; fix = `Turn ${t.control.split(",")[0].toLowerCase()} back on; the step was not prevented.`; }
+    else if (!res.detected.length) { verdict = "Gap"; fix = "Nothing raised a finding. Check that the detection source for this control is enabled."; }
+    sim.rtReport.push({ test: t.name, control: t.control, expect: t.expect, blocked: res.blocked, detected: res.detected, verdict, fix });
+    say(`Red team result: ${t.name}: ${verdict}`, "rt");
+  });
+  return e >= 110;
+}
+
+// ---------------------------------------------------------------- per-second simulation step
+function step() {
+  sim.t += 1;
+  sim.scheduled = sim.scheduled.filter((s) => { if (s.at <= sim.t) { s.fn(); return false; } return true; });
+  stepWorkload();
+  // Pirates: sail in, act, sail away.
+  if (ui.pirateMode !== "off" && sim.t >= sim.nextPirate && !sim.pirates.some((p) => !p.authorized && p.phase !== "done")) {
+    launchPirate(pickOne(Object.keys(PIRATES)));
+    sim.nextPirate = sim.t + (ui.pirateMode === "frequent" ? rand(25, 40) : rand(60, 90));
+  }
+  for (const p of sim.pirates) {
+    if (p.phase === "acting") {
+      const e = sim.t - p.actStart;
+      const done = p.authorized ? redTeamScript(p, e) : p.def.script(p, e);
+      if (done) { if (p.authorized) { p.phase = "leaving"; p.ship.tx = -60; say("Red team engagement complete. Report is in the engineering summary.", "rt"); } else finishPirate(p); }
+    }
+  }
+  sim.pirates = sim.pirates.filter((p) => p.phase !== "done" || sim.t - p.start < 400);
+  detect();
+  // Cluster history for charts.
+  const N = sim.nodes.length || 1;
+  const temps = sim.nodes.map((n) => n.temp).sort((a, b) => a - b);
+  const egress = sim.conns.filter((c) => c.t > sim.t - 1 && !APPROVED_DEST.has(c.dst) && c.kind === "tcp");
+  push(sim.hist.util, mean(sim.nodes.map((n) => n.util)));
+  push(sim.hist.tempMax, temps[temps.length - 1] || 0);
+  push(sim.hist.tempP50, temps[Math.floor(N / 2)] || 0);
+  push(sim.hist.power, sim.nodes.reduce((s, n) => s + n.power, 0) / 1000);
+  push(sim.hist.egressOk, egress.filter((c) => !c.blockedBy).reduce((s, c) => s + c.delivered, 0) / 1e6);
+  push(sim.hist.egressDenied, egress.filter((c) => c.blockedBy).length);
+  ui.dirty = true;
+}
+function push(a, v) { a.push(v); if (a.length > 120) a.shift(); }
+
+// ---------------------------------------------------------------- scene assembly
+function heatColor(n) {
+  if (sim.t < n.quarantinedUntil) return C.grey;
+  if (n.hijackedBy) return mix(C.magenta, [255, 190, 255], 0.5 + 0.5 * Math.sin(performance.now() / 180));
+  const t = clamp((n.temp - 44) / 44, 0, 1);
+  if (n.temp >= CFG.thermal) return C.red;
+  if (t < 0.45) return mix([31, 79, 107], C.teal, t / 0.45);
+  return mix(C.teal, C.amber, (t - 0.45) / 0.55);
+}
+function buildScene(now) {
+  V.ground = []; V.items = []; V.labels = [];
+  // Floor and grid
+  poly([P(-38, 0, -25), P(46, 0, -25), P(46, 0, 25), P(-38, 0, 25)], C.floor, { ground: true, flat: true });
+  for (let x = -36; x <= 44; x += 4) line(P(x, 0, -25), P(x, 0, 25), [255, 255, 255], { ground: true, alpha: 0.03 });
+  for (let z = -24; z <= 24; z += 4) line(P(-38, 0, z), P(46, 0, z), [255, 255, 255], { ground: true, alpha: 0.03 });
+  // Internet waves
+  for (let i = 0; i < 6; i++) { const x = 40 + i * 1.2; line(P(x, 0, -24), P(x, 0, 24), C.blue, { ground: true, alpha: 0.12 - i * 0.015, dash: [6, 8] }); }
+  // VPC and subnets
+  const vpc = [P(-31, 0.02, -22), P(36, 0.02, -22), P(36, 0.02, 22), P(-31, 0.02, 22)];
+  poly(vpc, C.floor, { ground: true, flat: true, alpha: 0.0001, stroke: "rgba(62,193,176,.55)", lw: 1.5, dash: [8, 6] });
+  Object.values(ZONES).forEach((zn) => {
+    poly([P(zn.x0, 0.03, zn.z0), P(zn.x1, 0.03, zn.z0), P(zn.x1, 0.03, zn.z1), P(zn.x0, 0.03, zn.z1)], zn.color, { ground: true, flat: true, alpha: 0.75, stroke: "rgba(140,170,200,.18)" });
+    label(P((zn.x0 + zn.x1) / 2, 0.1, zn.z1 - 0.4), zn.name, { sub: zn.cidr, color: [179, 193, 209], prio: 1 });
+  });
+  label(P(-30, 0.1, -21.5), "VPC 10.0.0.0/16", { color: C.teal, sub: "no internet gateway on workload subnets", prio: 2 });
+  label(P(44, 0.1, -20), "Internet", { color: C.blue, prio: 2 });
+  // Links (ground)
+  const rows = Math.ceil(sim.racks / 8);
+  for (let r = 0; r < rows; r++) {
+    const z = rackOrigin(r * 8).z + 2.6;
+    line(P(-28, 0.08, z), P(5, 0.08, z), C.teal, { ground: true, alpha: 0.22, lw: 1.5 });
+  }
+  line(P(5, 0.08, rackOrigin(0).z + 2.6), P(5, 0.08, rackOrigin((rows - 1) * 8).z + 2.6), C.teal, { ground: true, alpha: 0.22, lw: 1.5 });
+  [PTS.nat, PTS.dnsfw, PTS.alb].forEach((pt) => line(P(PTS.spine.x, 0.08, PTS.spine.z), P(pt.x, 0.08, PTS.spine.z), C.blue, { ground: true, alpha: 0.25, lw: 1.5 }));
+  line(P(29, 0.08, PTS.spine.z), P(29, 0.08, PTS.alb.z), C.blue, { ground: true, alpha: 0.25, lw: 1.5 });
+  [PTS.nat, PTS.dnsfw, PTS.alb].forEach((pt) => line(P(29, 0.08, pt.z), P(pt.x, 0.08, pt.z), C.blue, { ground: true, alpha: 0.25, lw: 1.5 }));
+  line(P(PTS.spine.x, 0.08, PTS.spine.z), P(PTS.spine.x, 0.08, 9.5), C.blue, { ground: true, alpha: 0.25, lw: 1.5 });
+  line(P(-24, 0.08, 9.5), P(22, 0.08, 9.5), C.blue, { ground: true, alpha: 0.25, lw: 1.5 });
+  line(P(PTS.spine.x, 0.08, PTS.spine.z), P(PTS.zeek.x, 0.08, PTS.zeek.z), C.amber, { ground: true, alpha: 0.35, dash: [4, 5] });
+  line(P(PTS.zeek.x, 0.08, PTS.zeek.z), P(PTS.gd.x, 0.08, PTS.gd.z), C.amber, { ground: true, alpha: 0.35, dash: [4, 5] });
+
+  // GPU mainframe
+  const sel = ui.selected;
+  sim.nodes.forEach((n) => {
+    const col = heatColor(n);
+    const isSel = sel === n.id;
+    box(n.x, n.y, n.z, 2.6, 1.42, 1.6, col, { id: `node:${n.id}`, stroke: isSel ? "#ffffff" : n.job ? "rgba(62,193,176,.55)" : "rgba(10,16,23,.6)", lw: isSel ? 2 : 1 });
+  });
+  for (let r = 0; r < sim.racks; r++) {
+    const o = rackOrigin(r);
+    box(o.x - 0.1, 6.75, o.z - 0.1, 2.8, 0.3, 1.8, C.cap, { id: `node:gpu-${pad(r * 4 + 1)}` });
+  }
+  const mm = rackOrigin(Math.min(sim.racks, 8) - 1);
+  label(P((rackOrigin(0).x + mm.x) / 2 + 1.3, 8.2, rackOrigin(0).z), `GPU mainframe · ${sim.nodes.length} GPUs`, { strong: true, color: C.teal, sub: `${sim.jobs.length} approved jobs · select to open dashboard`, prio: 4 });
+
+  // Devices
+  if (ui.defense) {
+    DEVICES.forEach((d) => {
+      const on = !d.def || defenseOn[d.def];
+      const [w, h, dep] = d.size;
+      const pulse = d.id === "pipeline" || d.id === "zeek" ? 0.06 * Math.sin(now / 400) : 0;
+      box(d.at.x - w / 2, 0, d.at.z - dep / 2, w, h, dep, on ? mix(C.device, C.teal, 0.12 + pulse) : C.deviceOff, { id: `dev:${d.id}`, stroke: on ? "rgba(62,193,176,.45)" : "rgba(255,107,107,.7)", dash: on ? null : [4, 3] });
+      label(P(d.at.x, h + 0.2, d.at.z), d.name + (on ? "" : " · off"), { sub: d.sub, color: on ? C.ink : C.red, prio: on ? 2 : 3 });
+    });
+  }
+
+  // Ships and the tester drone
+  sim.pirates.forEach((p) => {
+    if (p.phase === "done") return;
+    const bob = reduceMotion ? 0 : Math.sin(now / 500 + p.start) * 0.25;
+    const x = p.ship.x, z = p.ship.z, y = 0.2 + bob;
+    if (p.authorized) {
+      const top = P(x, y + 3.4, z), bot = P(x, y + 0.6, z), mid = 1.1;
+      const ring4 = [P(x - mid, y + 2, z), P(x, y + 2, z - mid), P(x + mid, y + 2, z), P(x, y + 2, z + mid)];
+      for (let i = 0; i < 4; i++) { const a = ring4[i], b = ring4[(i + 1) % 4]; poly([top, a, b], C.teal, { id: `ship:${p.id}`, normal: norm(cross(sub(a, top), sub(b, top))) }); poly([bot, b, a], mix(C.teal, [0, 0, 0], 0.3), { id: `ship:${p.id}`, normal: norm(cross(sub(b, bot), sub(a, bot))) }); }
+      label(P(x, y + 4.4, z), "Red team RT-2026-11", { color: C.teal, sub: "authorized · Session Manager", prio: 4 });
+    } else {
+      box(x - 2, y, z - 0.8, 4, 0.9, 1.6, C.hull, { id: `ship:${p.id}`, stroke: "rgba(0,0,0,.3)" });
+      line(P(x, y + 0.9, z), P(x, y + 4.4, z), [200, 190, 170], { lw: 2 });
+      poly([P(x, y + 4.3, z), P(x, y + 1.3, z), P(x + 2.2, y + 1.4, z)], p.def.color, { id: `ship:${p.id}`, flat: true, cull: false });
+      poly([P(x, y + 4.2, z), P(x - 1.6, y + 1.5, z), P(x, y + 1.4, z)], mix(p.def.color, [255, 255, 255], 0.25), { id: `ship:${p.id}`, flat: true, cull: false });
+      dotAt(P(x, y + 4.6, z), 0.28, C.red, { glow: true });
+      label(P(x, y + 5.3, z), p.def.name, { color: p.def.color, sub: p.def.kind, prio: 4 });
+    }
+  });
+
+  // Packets
+  packets.forEach((k) => {
+    let d = k.d, i = 0;
+    while (i < k.segs.length - 1 && d > k.segs[i]) { d -= k.segs[i]; i++; }
+    const a = k.path[i], b = k.path[i + 1] || a, f = k.segs[i] ? clamp(d / k.segs[i], 0, 1) : 1;
+    dotAt(P(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, a.z + (b.z - a.z) * f), k.r, k.color, { glow: k.glow });
+  });
+  // Flashes
+  flashes.forEach((fl) => {
+    const a = clamp(1 - fl.age / 1.6, 0, 1);
+    ring(fl.p, 1 + fl.age * 2.4, fl.color, a);
+    if (fl.text && fl.age < 1.4) label(P(fl.p.x, fl.p.y + 3.5, fl.p.z), fl.text, { color: fl.color, strong: true, prio: 5 });
+  });
+}
+
+// ---------------------------------------------------------------- frame loop
+let last = performance.now(), acc = 0, uiTimer = 0;
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!sim.paused) {
+    acc += dt * sim.speed;
+    while (acc >= 1) { acc -= 1; step(); }
+  }
+  // move ships
+  sim.pirates.forEach((p) => {
+    const s = p.ship, dx = s.tx - s.x, dz = s.tz - s.z, dist = Math.hypot(dx, dz);
+    const v = 6 * dt * (sim.paused ? 0 : sim.speed);
+    if (dist > 0.05) { s.x += (dx / dist) * Math.min(v, dist); s.z += (dz / dist) * Math.min(v, dist); }
+    else if (p.phase === "sailing") { p.phase = "acting"; p.actStart = sim.t + 1; }
+    else if (p.phase === "leaving") p.phase = "done";
+  });
+  packets.forEach((k) => { k.d += k.speed * dt * (sim.paused ? 0 : Math.max(1, sim.speed * 0.75)); });
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const k = packets[i];
+    let limit = k.total;
+    if (k.stopAt != null) { const n = Math.min(k.stopAt, k.segs.length); limit = k.segs.slice(0, n).reduce((s, v) => s + v, 0); }
+    if (k.d >= limit) packets.splice(i, 1);
+  }
+  flashes.forEach((f) => (f.age += dt));
+  for (let i = flashes.length - 1; i >= 0; i--) if (flashes[i].age > 1.8) flashes.splice(i, 1);
+  if (ui.orbit && !reduceMotion && !drag.active) V.yaw += dt * 0.05;
+  camera();
+  buildScene(now);
+  paint();
+  uiTimer += dt;
+  if (ui.dirty && uiTimer > 0.25) { uiTimer = 0; ui.dirty = false; renderPanels(); }
+  requestAnimationFrame(frame);
+}
+
+// ---------------------------------------------------------------- panels
+function kpi(label, value, alert) { return `<div class="kpi${alert ? " alert" : ""}"><span>${label}</span><b>${value}</b></div>`; }
+function renderPanels() {
+  $("clock").textContent = clock(sim.t);
+  const N = sim.nodes.length;
+  const busy = sim.nodes.filter((n) => n.util >= 70).length;
+  const open = sim.findings.filter((f) => f.status === "open" && f.cat !== "ctx");
+  const active = sim.pirates.filter((p) => !p.authorized && p.phase !== "done" && p.phase !== "leaving").length;
+  const egressNow = sim.hist.egressOk.slice(-1)[0] || 0;
+  $("kpis").innerHTML =
+    kpi("GPUs busy", `${busy} / ${N}`) + kpi("Cluster utilization", `${(sim.hist.util.slice(-1)[0] || 0).toFixed(0)}%`) +
+    kpi("Power draw", `${(sim.hist.power.slice(-1)[0] || 0).toFixed(1)} kW`) + kpi("Hottest GPU", `${(sim.hist.tempMax.slice(-1)[0] || 0).toFixed(0)} °C`, (sim.hist.tempMax.slice(-1)[0] || 0) >= 85) +
+    kpi("Open findings", open.length, open.some((f) => f.cat === "sec")) + kpi("Pirates in range", active, active > 0) +
+    kpi("Attempts blocked", sim.totals.blocked) + kpi("Data lost", sim.totals.lost ? mb(sim.totals.lost) : "none", sim.totals.lost > 0) +
+    kpi("Unapproved egress", `${egressNow.toFixed(1)} MB/s`, egressNow > 0) + kpi("Median time to detect", sim.totals.ttd.length ? `${median(sim.totals.ttd).toFixed(0)} s` : "n/a");
+  if (ui.feedDirty) {
+    ui.feedDirty = false;
+    $("feed").innerHTML = sim.feed.slice(0, 70).map((e) => `<div class="ev t-${e.tone}"><time>${clock(e.t)}</time><i></i><span>${esc(e.text)}</span></div>`).join("");
+  }
+  if (ui.banner && sim.t <= ui.banner.until) { const b = $("banner"); b.hidden = false; b.textContent = ui.banner.text; b.className = "banner" + (ui.banner.rt ? " rt" : ""); }
+  else $("banner").hidden = true;
+  if (ui.tab === "summary") renderSummary();
+  if ($("dash").open) renderDash();
+  if (ui.card && ui.card.startsWith("ship:")) showCard(ui.card);
+}
+const median = (a) => { const s = a.slice().sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : 0; };
+
+function renderDefenses() {
+  const groups = ["Prevent", "Detect", "Respond"];
+  $("defs").innerHTML = groups.map((g) => `<div><h4>${g}</h4><div style="display:grid;gap:6px">${DEFENSES.filter((d) => d.group === g).map((d) => `
+    <label class="def"><input type="checkbox" data-def="${d.id}" ${defenseOn[d.id] ? "checked" : ""}><div><b>${esc(d.name)}</b><span class="aws">${esc(d.aws)}</span><span>Open source: ${esc(d.alt)}</span></div></label>`).join("")}</div></div>`).join("");
+  $("defs").querySelectorAll("[data-def]").forEach((c) => c.addEventListener("change", () => {
+    defenseOn[c.dataset.def] = c.checked;
+    say(`${DEFENSES.find((d) => d.id === c.dataset.def).name} turned ${c.checked ? "on" : "off"}`, c.checked ? "block" : "loss");
+    ui.dirty = true; if (ui.card) showCard(ui.card);
+  }));
+}
+
+function renderSummary() {
+  const N = sim.nodes.length;
+  const linesPerSecond = N;
+  const window = Math.floor(4000 / Math.max(1, linesPerSecond));
+  const jobsGpus = sim.nodes.filter((n) => n.job).length;
+  const recent = sim.conns.filter((c) => c.t > sim.t - 60);
+  const storage = recent.filter((c) => c.dst === "vpce-s3").reduce((s, c) => s + c.delivered, 0) / 60 / 1e6;
+  const egressOk = recent.filter((c) => !APPROVED_DEST.has(c.dst) && !c.blockedBy && c.kind === "tcp").reduce((s, c) => s + c.delivered, 0);
+  const denied = recent.filter((c) => c.blockedBy).length;
+  const zoneRows = Object.values(ZONES).map((z) => `<tr><td>${z.name}</td><td class="mono">${z.cidr}</td></tr>`).join("");
+  const posture = DEFENSES.map((d) => `<tr><td>${esc(d.name)}</td><td>${d.group}</td><td>${defenseOn[d.id] ? '<span class="pill p-ok">on</span>' : '<span class="pill p-bad">off</span>'}</td></tr>`).join("");
+  const coverage = Object.entries(PIRATES).map(([k, def]) => {
+    const seen = sim.incidents.filter((i) => i.name === def.name);
+    const lastI = seen[0];
+    const v = lastI ? lastI.verdict : "not seen";
+    const cls = v === "Repelled" ? "p-ok" : v === "Blocked quietly" ? "p-gap" : v === "not seen" ? "" : "p-bad";
+    return `<tr><td>${def.name}</td><td>${esc(def.attack)}</td><td>${seen.length}</td><td><span class="pill ${cls}">${v}</span></td></tr>`;
+  }).join("");
+  const inc = sim.incidents.slice(0, 12).map((i) => `<tr><td class="mono">${clock(i.t)}</td><td>${esc(i.name)}</td><td><span class="pill ${i.verdict === "Repelled" ? "p-ok" : i.verdict === "Blocked quietly" ? "p-gap" : "p-bad"}">${i.verdict}</span></td><td class="n">${i.ttd == null ? "n/a" : i.ttd + " s"}</td><td>${esc(i.prevented[0] || "nothing prevented it")}</td><td>${esc(i.what)}</td></tr>`).join("");
+  const rt = sim.rtReport.map((r) => `<tr><td>${esc(r.test)}</td><td>${r.blocked ? "yes" : "no"}</td><td>${esc(r.detected.join(", ") || "none")}</td><td><span class="pill ${r.verdict === "Pass" ? "p-ok" : r.verdict === "Partial" ? "p-gap" : "p-bad"}">${r.verdict}</span></td><td>${esc(r.fix || "Working as designed")}</td></tr>`).join("");
+  $("summary").innerHTML = `
+  <div class="sect"><h3>Topology</h3><div class="tw"><table class="t"><thead><tr><th>Segment</th><th>CIDR</th></tr></thead><tbody>${zoneRows}</tbody></table></div>
+  <p class="note" style="margin-top:6px">Spine pair to every rack, egress only through Network Firewall and NAT, S3 through a gateway endpoint, DNS through the Resolver DNS Firewall, inbound only through ALB with WAF. Monitoring receives a traffic mirror of the GPU subnet. Link speeds are illustrative.</p></div>
+  <div class="sect"><h3>Capacity and telemetry, last 60 s</h3><div class="tw"><table class="t"><tbody>
+    <tr><td>GPUs, in approved jobs</td><td class="n">${N}, ${jobsGpus}</td></tr>
+    <tr><td>Power draw</td><td class="n">${(sim.hist.power.slice(-1)[0] || 0).toFixed(1)} kW</td></tr>
+    <tr><td>Storage reads via endpoint</td><td class="n">${storage.toFixed(1)} MB/s</td></tr>
+    <tr><td>Unapproved egress delivered</td><td class="n">${mb(egressOk)}</td></tr>
+    <tr><td>Connections denied</td><td class="n">${denied}</td></tr>
+    <tr><td>GPU telemetry lines per second</td><td class="n">${linesPerSecond}</td></tr>
+    <tr><td>Seconds covered by one 4,000-line collector pass</td><td class="n">${window} s</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:6px">${window < 60 ? `At ${N} GPUs a single collector pass covers less than the 60 s volume window, so rules would miss data. Shard collectors per rack row, or stream telemetry through Kinesis Data Streams or Kafka before scaling further.` : `A single collector pass still covers the longest 60 s rule window at this size. Past ${Math.floor(4000 / 60)} GPUs it would not.`}</p></div>
+  <div class="sect"><h3>Control posture</h3><div class="tw"><table class="t"><thead><tr><th>Control</th><th>Role</th><th>State</th></tr></thead><tbody>${posture}</tbody></table></div></div>
+  <div class="sect"><h3>Coverage by pirate type</h3><div class="tw"><table class="t"><thead><tr><th>Crew</th><th>Technique</th><th>Seen</th><th>Last outcome</th></tr></thead><tbody>${coverage}</tbody></table></div></div>
+  <div class="sect"><h3>Incidents</h3>${inc ? `<div class="tw"><table class="t"><thead><tr><th>Time</th><th>Crew</th><th>Outcome</th><th>Detect</th><th>Prevented by</th><th>Impact</th></tr></thead><tbody>${inc}</tbody></table></div>` : '<p class="note">No pirate has finished yet.</p>'}</div>
+  <div class="sect"><h3>Red team report RT-2026-11</h3>${rt ? `<div class="tw"><table class="t"><thead><tr><th>Test</th><th>Blocked</th><th>Detected by</th><th>Verdict</th><th>Recommendation</th></tr></thead><tbody>${rt}</tbody></table></div>` : '<p class="note">Run the red team test to fill this in.</p>'}</div>
+  <p class="note">All values come from the synthetic run in this page. AWS services are the mapping proposed in the repository, not a deployment. GuardDuty finding latency is minutes in practice and is compressed here.</p>`;
+}
+function summaryText() {
+  const lines = [`Sentinel Ops engineering summary at ${clock(sim.t)} (synthetic)`, `GPUs ${sim.nodes.length}, power ${(sim.hist.power.slice(-1)[0] || 0).toFixed(1)} kW, attempts blocked ${sim.totals.blocked}, data lost ${sim.totals.lost ? mb(sim.totals.lost) : "none"}`, "", "Controls:"];
+  DEFENSES.forEach((d) => lines.push(`  ${defenseOn[d.id] ? "on " : "off"}  ${d.name} (${d.aws})`));
+  lines.push("", "Incidents:");
+  sim.incidents.forEach((i) => lines.push(`  ${clock(i.t)}  ${i.name}  ${i.verdict}  detect ${i.ttd == null ? "n/a" : i.ttd + " s"}  impact: ${i.what}`));
+  if (sim.rtReport.length) { lines.push("", "Red team RT-2026-11:"); sim.rtReport.forEach((r) => lines.push(`  ${r.verdict}: ${r.test}${r.fix ? " -> " + r.fix : ""}`)); }
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------- dashboard
+function chart(canvas, series, o) {
+  const r = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.max(1, r.width * dpr); canvas.height = Math.max(1, r.height * dpr);
+  const g = canvas.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = r.width, h = r.height, padL = 30, padB = 14;
+  g.clearRect(0, 0, w, h);
+  const lo = o.min, hi = o.max;
+  const y = (v) => h - padB - ((clamp(v, lo, hi) - lo) / (hi - lo)) * (h - padB - 6);
+  g.strokeStyle = "rgba(255,255,255,.06)"; g.fillStyle = "#7d8ea3"; g.font = "10px IBM Plex Mono, monospace"; g.textBaseline = "middle";
+  [lo, (lo + hi) / 2, hi].forEach((v) => { g.beginPath(); g.moveTo(padL, y(v)); g.lineTo(w, y(v)); g.stroke(); g.fillText(String(Math.round(v)), 2, y(v)); });
+  if (o.threshold != null) { g.strokeStyle = "rgba(255,107,107,.7)"; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(padL, y(o.threshold)); g.lineTo(w, y(o.threshold)); g.stroke(); g.setLineDash([]); }
+  series.forEach((s) => {
+    const n = s.data.length; if (n < 2) return;
+    const x = (i) => padL + (i / 119) * (w - padL);
+    const off = 120 - n;
+    if (s.fill) { g.beginPath(); g.moveTo(x(off), h - padB); s.data.forEach((v, i) => g.lineTo(x(off + i), y(v))); g.lineTo(x(off + n - 1), h - padB); g.closePath(); g.fillStyle = s.fill; g.fill(); }
+    g.beginPath(); s.data.forEach((v, i) => (i ? g.lineTo(x(off + i), y(v)) : g.moveTo(x(off + i), y(v)))); g.strokeStyle = s.color; g.lineWidth = 1.6; g.stroke();
+    g.fillStyle = s.color; g.beginPath(); g.arc(x(off + n - 1), y(s.data[n - 1]), 2.6, 0, 7); g.fill();
+  });
+}
+function renderDash() {
+  const H = sim.hist, N = sim.nodes.length;
+  $("dashSub").textContent = `${N} GPUs in ${sim.racks} racks · ${sim.jobs.length} approved jobs · streaming synthetic telemetry at ${clock(sim.t)}`;
+  $("cU").textContent = `${(H.util.slice(-1)[0] || 0).toFixed(0)}%`;
+  $("cT").textContent = `${(H.tempP50.slice(-1)[0] || 0).toFixed(0)} / ${(H.tempMax.slice(-1)[0] || 0).toFixed(0)} °C`;
+  $("cP").textContent = `${(H.power.slice(-1)[0] || 0).toFixed(1)} kW`;
+  $("cE").textContent = `${(H.egressOk.slice(-1)[0] || 0).toFixed(1)} MB/s · ${H.egressDenied.slice(-1)[0] || 0} denied`;
+  chart($("chU"), [{ data: H.util, color: "#3ec1b0", fill: "rgba(62,193,176,.12)" }], { min: 0, max: 100, threshold: 70 });
+  chart($("chT"), [{ data: H.tempP50, color: "#6c9cff" }, { data: H.tempMax, color: "#f2a93b" }], { min: 30, max: 100, threshold: 85 });
+  const pmax = Math.max(1, ...H.power) * 1.2;
+  chart($("chP"), [{ data: H.power, color: "#d36cf0", fill: "rgba(211,108,240,.1)" }], { min: 0, max: Math.ceil(pmax) });
+  const emax = Math.max(4, ...H.egressOk, ...H.egressDenied) * 1.2;
+  chart($("chE"), [{ data: H.egressOk, color: "#ff6b6b", fill: "rgba(255,107,107,.1)" }, { data: H.egressDenied, color: "#4fd18f" }], { min: 0, max: Math.ceil(emax) });
+  // heatmap
+  const hc = $("heat"), r = hc.getBoundingClientRect();
+  hc.width = 60; hc.height = Math.max(1, N);
+  const g = hc.getContext("2d"), img = g.createImageData(60, N);
+  sim.nodes.forEach((n, row) => {
+    for (let c = 0; c < 60; c++) {
+      const v = n.hist[n.hist.length - 60 + c];
+      const col = v == null ? [17, 27, 38] : v >= 85 ? C.red : v < 66 ? mix([31, 79, 107], C.teal, clamp((v - 44) / 22, 0, 1)) : mix(C.teal, C.amber, clamp((v - 66) / 19, 0, 1));
+      const i = (row * 60 + c) * 4; img.data[i] = col[0]; img.data[i + 1] = col[1]; img.data[i + 2] = col[2]; img.data[i + 3] = 255;
+    }
+  });
+  g.putImageData(img, 0, 0);
+  hc.style.height = `${Math.min(300, Math.max(120, N * 2.4))}px`;
+  // detections
+  const shown = sim.findings.slice(0, 40);
+  $("detCount").textContent = `${sim.findings.filter((f) => f.status === "open").length} open · ${sim.findings.length} total`;
+  $("detBody").innerHTML = shown.map((f) => `<tr><td class="mono">${clock(f.t)}</td><td title="${esc(f.aws)}"><span class="pill p-${f.cat}">${esc(f.cat === "ctx" ? "context" : f.cat === "op" ? "operational" : f.cat === "inv" ? "investigate" : "security")}</span> ${esc(f.title)}<div class="note mono">${esc(f.rule)}</div></td><td class="mono">${esc(f.subject)}</td><td title="${esc(f.aws)}">${esc(DEFENSES.find((d) => d.id === f.sensor)?.name || f.sensor)}</td><td>${f.authorized ? '<span class="pill p-rt">authorized test</span>' : esc(f.status)}</td></tr>`).join("") || '<tr><td colspan="5" class="note">No detections yet. Quiet is a valid answer.</td></tr>';
+  // node table
+  const rows = sim.nodes.slice().sort((a, b) => Math.abs(b.score) - Math.abs(a.score)).slice(0, 128);
+  $("nodeBody").innerHTML = rows.map((n) => {
+    const st = sim.t < n.quarantinedUntil ? "quarantined" : n.hijackedBy ? "hijacked" : n.temp >= 85 ? "hot" : n.job ? "job" : "ok";
+    const stText = { quarantined: "quarantined", hijacked: "no approved job", hot: "over 85 °C", job: "approved", ok: "idle" }[st];
+    return `<tr class="click${ui.selected === n.id ? " sel" : ""}" data-node="${n.id}"><td class="mono">${n.id}</td><td class="n">${n.rack}</td><td class="mono">${n.job || "none"}</td><td class="n">${n.util.toFixed(0)}</td><td class="n">${n.temp.toFixed(1)}</td><td class="n">${n.expected.toFixed(1)}</td><td class="n" style="color:${Math.abs(n.score) >= 4 ? "var(--blue)" : "inherit"}">${n.score.toFixed(1)}</td><td class="n">${n.power.toFixed(0)}</td><td class="n">${n.mem.toFixed(0)}</td><td><span class="state s-${st}">${stText}</span></td></tr>`;
+  }).join("");
+}
+$("nodeBody").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-node]"); if (!tr) return; ui.selected = tr.dataset.node; const n = nodeById(ui.selected); if (n) { flyTo(P(n.x + 1.3, 3, n.z), 46); } renderDash(); });
+
+// ---------------------------------------------------------------- detail card
+function showCard(id) {
+  ui.card = id;
+  const card = $("card");
+  let html = "";
+  if (id.startsWith("dev:")) {
+    const d = DEVICES.find((x) => x.id === id.slice(4));
+    const def = d.def ? DEFENSES.find((x) => x.id === d.def) : null;
+    html = `<h3>${esc(d.name)}</h3><div class="sub">${esc(d.sub)}</div>`;
+    if (def) html += `<dl><dt>AWS</dt><dd>${esc(def.aws)}</dd><dt>Open source</dt><dd>${esc(def.alt)}</dd><dt>Sees</dt><dd>${esc(def.sees)}</dd>${def.stops ? `<dt>Stops</dt><dd>${esc(def.stops)}</dd>` : ""}<dt>Cannot</dt><dd>${esc(def.cannot)}</dd></dl><div class="row"><button data-toggle="${def.id}">${defenseOn[def.id] ? "Turn off to compare" : "Turn back on"}</button><button data-close>Close</button></div>`;
+    else if (d.id === "spine") html += `<dl><dt>Role</dt><dd>Leaf to spine fabric for every rack; all-reduce traffic between GPUs stays here</dd><dt>Mirror</dt><dd>GPU subnet traffic is mirrored to the Zeek sensor (VPC Traffic Mirroring, VXLAN)</dd></dl><div class="row"><button data-close>Close</button></div>`;
+    else html += `<dl><dt>Role</dt><dd>The only way testers reach the hall: no SSH, no public IP, every session logged</dd><dt>AWS</dt><dd>Systems Manager Session Manager</dd></dl><div class="row"><button data-close>Close</button></div>`;
+  } else if (id.startsWith("ship:")) {
+    const p = sim.pirates.find((x) => x.id === id.slice(5));
+    if (!p) { hideCard(); return; }
+    if (p.authorized) {
+      html = `<h3>Red team RT-2026-11</h3><div class="sub">Authorized ethical hackers · source ${p.ip}</div><dl><dt>Now</dt><dd>${esc(RT_TESTS.find((t) => t.id === p.current)?.name || "connecting")}</dd><dt>Results</dt><dd>${sim.rtReport.length} of ${RT_TESTS.length} graded</dd><dt>Why</dt><dd>Prove each control works before a real crew tests it for you</dd></dl><div class="row"><button data-tab-go="summary">Open report</button><button data-close>Close</button></div>`;
+    } else {
+      html = `<h3>${esc(p.def.name)}</h3><div class="sub">${esc(p.def.kind)} · from ${p.ip}</div><dl><dt>Plan</dt><dd>${esc(p.def.story)}</dd><dt>ATT&amp;CK</dt><dd>${esc(p.def.attack)}</dd><dt>Status</dt><dd>${p.phase}${p.firstDetect != null ? `, detected after ${p.firstDetect - p.actStart} s` : ", not detected yet"}</dd><dt>Stopped by</dt><dd>${esc(p.prevented.join("; ") || "nothing yet")}</dd><dt>Taken</dt><dd>${p.lost ? mb(p.lost) : "nothing"}</dd></dl><div class="row"><button data-close>Close</button></div>`;
+    }
+  }
+  card.innerHTML = html; card.hidden = false;
+  card.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", hideCard));
+  card.querySelectorAll("[data-toggle]").forEach((b) => b.addEventListener("click", () => { const k = b.dataset.toggle; defenseOn[k] = !defenseOn[k]; say(`${DEFENSES.find((d) => d.id === k).name} turned ${defenseOn[k] ? "on" : "off"}`, defenseOn[k] ? "block" : "loss"); renderDefenses(); showCard(id); }));
+  card.querySelectorAll("[data-tab-go]").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tabGo)));
+}
+function hideCard() { ui.card = null; $("card").hidden = true; }
+
+// ---------------------------------------------------------------- input
+const drag = { active: false, moved: false, x: 0, y: 0 };
+V.canvas.addEventListener("pointerdown", (e) => { drag.active = true; drag.moved = false; drag.x = e.clientX; drag.y = e.clientY; V.canvas.setPointerCapture(e.pointerId); });
+V.canvas.addEventListener("pointermove", (e) => {
+  if (!drag.active) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 4) { drag.moved = true; V.canvas.classList.add("dragging"); }
+  if (drag.moved) { V.yaw -= dx * 0.006; V.pitch = clamp(V.pitch + dy * 0.004, 0.22, 1.38); drag.x = e.clientX; drag.y = e.clientY; }
+});
+V.canvas.addEventListener("pointerup", (e) => {
+  V.canvas.classList.remove("dragging");
+  if (drag.active && !drag.moved) {
+    const r = V.canvas.getBoundingClientRect();
+    const id = pick(e.clientX - r.left, e.clientY - r.top);
+    if (id && id.startsWith("node:")) { ui.selected = id.slice(5); openDash(); }
+    else if (id) showCard(id);
+    else hideCard();
+  }
+  drag.active = false;
+});
+V.canvas.addEventListener("wheel", (e) => { e.preventDefault(); V.dist = clamp(V.dist * (1 + Math.sign(e.deltaY) * 0.08), 28, 150); }, { passive: false });
+let fly = null;
+function flyTo(target, dist) { fly = { from: { ...V.target }, fromD: V.dist, to: target, toD: dist, t: 0 }; if (reduceMotion) { V.target = target; V.dist = dist; fly = null; } }
+setInterval(() => { if (!fly) return; fly.t = Math.min(1, fly.t + 0.08); const k = fly.t * fly.t * (3 - 2 * fly.t); V.target = P(fly.from.x + (fly.to.x - fly.from.x) * k, fly.from.y + (fly.to.y - fly.from.y) * k, fly.from.z + (fly.to.z - fly.from.z) * k); V.dist = fly.fromD + (fly.toD - fly.fromD) * k; if (fly.t >= 1) fly = null; }, 16);
+$("viewHall").onclick = () => { V.yaw = -0.32; V.pitch = 0.86; flyTo(P(-1, 0, -2), 82); };
+$("viewMain").onclick = () => flyTo(P(-14, 2, -8), 50);
+$("viewEdge").onclick = () => flyTo(P(30, 1, 0), 52);
+
+function openDash() { if (!$("dash").open) $("dash").showModal(); renderDash(); }
+$("openDash").onclick = openDash;
+$("closeDash").onclick = () => $("dash").close();
+$("openRt").onclick = () => $("rt").showModal();
+$("closeRt").onclick = $("cancelRt").onclick = () => $("rt").close();
+$("startRt").onclick = () => { $("rt").close(); startRedTeam(); flyTo(P(-20, 1, -4), 70); };
+$("pause").onclick = () => { sim.paused = !sim.paused; $("pause").setAttribute("aria-pressed", sim.paused); $("pause").textContent = sim.paused ? "Resume" : "Pause"; };
+$("speed").onchange = (e) => (sim.speed = +e.target.value);
+ui.pirateMode = "occasional";
+$("pirateMode").onchange = (e) => { ui.pirateMode = e.target.value; if (e.target.value !== "off") sim.nextPirate = Math.min(sim.nextPirate, sim.t + 8); };
+$("launchType").innerHTML = Object.entries(PIRATES).map(([k, d]) => `<option value="${k}">${d.name}</option>`).join("");
+$("launch").onclick = () => { if (sim.pirates.some((p) => !p.authorized && p.phase !== "done" && p.phase !== "leaving")) { say("One crew at a time: wait for the current pirates to leave", "info"); renderPanels(); return; } launchPirate($("launchType").value); flyTo(P(22, 1, 0), 74); };
+$("racks").oninput = (e) => { sim.racks = +e.target.value; $("racksV").textContent = sim.racks; $("gpusV").textContent = sim.racks * 4; buildNodes(sim.racks); ui.dirty = true; };
+$("showLabels").onchange = (e) => (ui.labels = e.target.checked);
+$("showTraffic").onchange = (e) => (ui.traffic = e.target.checked);
+$("showDefense").onchange = (e) => (ui.defense = e.target.checked);
+$("autoOrbit").onchange = (e) => (ui.orbit = e.target.checked);
+function setTab(name) {
+  ui.tab = name;
+  document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
+  document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("on", p.id === `pane-${name}`));
+  if (name === "summary") renderSummary();
+}
+document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+$("copySummary").onclick = () => {
+  const text = summaryText();
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => { $("copySummary").textContent = "Copied"; setTimeout(() => ($("copySummary").textContent = "Copy as text"), 1500); }).catch(() => fallbackCopy(text));
+  else fallbackCopy(text);
+};
+function fallbackCopy(text) { const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); $("copySummary").textContent = "Copied"; } catch (e) { $("copySummary").textContent = "Select and copy from the panel"; } ta.remove(); }
+
+// ---------------------------------------------------------------- start
+new ResizeObserver(resize).observe(V.canvas);
+resize();
+if (V.w < 700) { V.target = P(-8, 0, -2); V.dist = 70; }
+buildNodes(sim.racks);
+renderDefenses();
+say("Sentinel Ops started. All telemetry, traffic, pirates, and testers are synthetic.", "info");
+for (let i = 0; i < 30; i++) step(); // warm up so charts and jobs are populated at first paint
+requestAnimationFrame(frame);
+window.__sentinel = { sim, step, launchPirate, startRedTeam, defenseOn, PIRATES };
+</script>
+
+</body>
+</html>
