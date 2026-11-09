@@ -1,0 +1,10 @@
+{
+  "thermal_c": 85,
+  "unapproved_gpu_percent": 70,
+  "transfer_bytes": 50000,
+  "correlation_seconds": 5,
+  "port_threshold": 6,
+  "beacon_min_connections": 6,
+  "beacon_max_cv": 0.25,
+  "note": "Sample configuration asset; lab/settings.json remains the live configuration."
+}

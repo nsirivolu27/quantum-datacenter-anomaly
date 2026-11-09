@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Data center security lab — diagnostics</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header><h1>Data center security lab</h1><p>Local diagnostics for the repository. GPU readings and job attribution are simulated. Zeek and OpenCanary records come from actual container traffic.</p></header>
+<main>
+<div id="error" role="alert" hidden></div>
+<section><h2>Run controls</h2><div class="controls"><button id="start">Run 120-second test cycle</button><label for="scenario">Scenario</label><select id="scenario"><option value="baseline">Baseline</option><option value="approved_load">Approved load</option><option value="thermal">Thermal fault</option><option value="recon">Decoy probes</option><option value="beacon">Periodic connections</option><option value="misuse">Unapproved compute</option><option value="recovery">Recovery</option></select><button id="apply">Apply scenario</button><button id="stop">Return to baseline</button><a href="/api/export" download>Export JSON</a></div><p id="run">Connecting…</p><p class="note">Manual scenarios run until changed. Returning to baseline stops generated activity; it does not install firewall rules.</p></section>
+<section><h2>Implementation</h2><pre>GPU simulator ───────────────────────┐
+Worker traffic → Zeek conn.log ──────┼→ source adapters → normalized batch
+Decoy traffic → OpenCanary JSONL ────┘                       ↓
+                                         rule packs + time/identity correlation
+                                                          ↓
+                                         findings → retained evidence → export</pre><p>The QDC Isolation Forest adds a resource anomaly score. Rules and correlation produce findings independently of scenario labels. The framework also runs through Python and the CLI without this viewer.</p><p><a href="/api/framework">Runtime contract and thresholds (JSON)</a> · <a href="/api/health">Collector health (JSON)</a></p></section>
+<section><h2>Source status</h2><table><thead><tr><th>Source</th><th>Status</th><th>Malformed records</th><th>Type</th></tr></thead><tbody id="health"></tbody></table><p id="counts"></p></section>
+<section><h2>Findings</h2><p class="note">Findings accumulate during the current run. Select one to inspect the evidence. Investigation findings do not establish malicious activity.</p><div id="findings">No snapshot received.</div></section>
+<details open><summary>Recent Zeek connections</summary><div class="scroll"><table><thead><tr><th>Timestamp</th><th>Source</th><th>Destination</th><th>Port</th><th>State</th><th>Combined bytes</th></tr></thead><tbody id="flows"></tbody></table></div><p class="note">Connection records can arrive after the underlying traffic. Byte counts combine originator and responder payload bytes.</p></details>
+<details><summary>Latest simulated GPU sample and QDC model</summary><pre id="gpu">Waiting for data</pre></details>
+<details><summary>Loaded rule packs and thresholds</summary><pre id="framework">Waiting for data</pre></details>
+<details><summary>Storage and scope</summary><p>The collector reads the last 4,000 lines from each source. Exports contain up to 1,500 original evidence records. Disk logs continue growing. This lab observes one container's network interface; it does not monitor the whole host or provide production SIEM retention.</p><p>Automated containment, AWS integration, real GPU collection, and production authentication are not implemented. See <code>docs/09-local-security-lab.md</code> and <code>docs/10-gpu-metrics-and-security.md</code> in the repository.</p></details>
+</main>
+<dialog id="evidence"><button id="close">Close</button><h2 id="evidence-title">Evidence</h2><p id="explanation"></p><pre id="record"></pre></dialog>
+</body></html>

@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "generated_at": 1700000006.0,
+  "control": {
+    "run_id": "sample-run",
+    "started_at": 1700000000,
+    "mode": "baseline"
+  },
+  "inventory": {
+    "worker": "172.20.0.2",
+    "api": "172.20.0.3",
+    "canary": "172.20.0.4"
+  },
+  "findings": [],
+  "evidence": [
+    {
+      "id": "gpu-simulator:sample0",
+      "ts": 1700000000,
+      "source": "gpu-simulator",
+      "raw": {
+        "ts": 1700000000,
+        "run_id": "sample-run",
+        "node_id": "compute-01",
+        "gpu_id": "simulated-gpu-0",
+        "source": "gpu-simulator",
+        "simulated": true,
+        "gpu_util_percent": 22.76,
+        "gpu_memory_mb": 2713.7,
+        "gpu_temp_c": 49.0,
+        "gpu_power_w": 100.45,
+        "job_id": null,
+        "job_approved": false
+      }
+    },
+    {
+      "id": "gpu-simulator:sample1",
+      "ts": 1700000001,
+      "source": "gpu-simulator",
+      "raw": {
+        "ts": 1700000001,
+        "run_id": "sample-run",
+        "node_id": "compute-01",
+        "gpu_id": "simulated-gpu-0",
+        "source": "gpu-simulator",
+        "simulated": true,
+        "gpu_util_percent": 30.51,
+        "gpu_memory_mb": 3315.8,
+        "gpu_temp_c": 49.42,
+        "gpu_power_w": 120.93,
+        "job_id": null,
+        "job_approved": false
+      }
+    },
+    {
+      "id": "gpu-simulator:sample2",
+      "ts": 1700000002,
+      "source": "gpu-simulator",
+      "raw": {
+        "ts": 1700000002,
+        "run_id": "sample-run",
+        "node_id": "compute-01",
+        "gpu_id": "simulated-gpu-0",
+        "source": "gpu-simulator",
+        "simulated": true,
+        "gpu_util_percent": 23.19,
+        "gpu_memory_mb": 2850.2,
+        "gpu_temp_c": 47.89,
+        "gpu_power_w": 100.41,
+        "job_id": null,
+        "job_approved": false
+      }
+    },
+    {
+      "id": "gpu-simulator:sample3",
+      "ts": 1700000003,
+      "source": "gpu-simulator",
+      "raw": {
+        "ts": 1700000003,
+        "run_id": "sample-run",
+        "node_id": "compute-01",
+        "gpu_id": "simulated-gpu-0",
+        "source": "gpu-simulator",
+        "simulated": true,
+        "gpu_util_percent": 34.73,
+        "gpu_memory_mb": 3774.2,
+        "gpu_temp_c": 52.32,
+        "gpu_power_w": 125.56,
+        "job_id": null,
+        "job_approved": false
+      }
+    },
+    {
+      "id": "gpu-simulator:sample4",
+      "ts": 1700000004,
+      "source": "gpu-simulator",
+      "raw": {
+        "ts": 1700000004,
+        "run_id": "sample-run",
+        "node_id": "compute-01",
+        "gpu_id": "simulated-gpu-0",
+        "source": "gpu-simulator",
+        "simulated": true,
+        "gpu_util_percent": 30.7,
+        "gpu_memory_mb": 3413.0,
+        "gpu_temp_c": 52.68,
+        "gpu_power_w": 120.6,
+        "job_id": null,
+        "job_approved": false
+      }
+    }
+  ]
+}
