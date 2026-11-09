@@ -18,6 +18,7 @@ handoff boundary for later design work; it specifies no layout or branding.
 | `collector.py` | Joins adapters, evaluates rules/model, returns a bounded snapshot. |
 | `replay.py` | Recomputes findings from exported raw observations offline. |
 | `storage.py` | Atomic control files, append-only JSONL, evidence IDs. |
+| `quality.py` | Seeded synthetic cycles with benign noise; per-rule precision, recall, time to detect (pandas). |
 | `server.py` | Local JSON API and minimal diagnostic client. |
 
 | File under `src/qdc_anomaly/security/` | Responsibility |
