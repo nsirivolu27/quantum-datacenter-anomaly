@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="A picture book you can run: how a data center server is watched, how odd behavior is caught, and how valuable files are kept from quiet changes.">
+<meta name="description" content="A picture book of how a data center server is watched, how odd behavior is caught, and how valuable files are kept from quiet changes.">
 <title>Sentinel Lab</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -129,50 +129,6 @@ a { color: var(--net); }
 @media (max-width: 760px) { .bins { grid-template-columns: 1fr; } }
 
 /* back cover */
-/* interactive controls under scenes */
-.sim { margin-top: 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
-.sim h3 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
-.sim .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-@media (max-width: 760px) { .sim .row { grid-template-columns: 1fr; } }
-.sim label { display: grid; gap: 4px; font-size: 14px; color: var(--ink-2); }
-.sim label .v { font-family: var(--mono); color: var(--ink); }
-.sim input[type=range] { width: 100%; accent-color: var(--gpu); }
-.sim select, .sim textarea { font: inherit; background: var(--panel-2); color: var(--ink); border: 1px solid var(--rule-2); border-radius: 8px; padding: 6px 8px; width: 100%; }
-.sim textarea { font-family: var(--mono); font-size: 13px; min-height: 110px; }
-.btns { display: flex; flex-wrap: wrap; gap: 8px; }
-.btn { font: inherit; font-weight: 700; font-size: 14px; padding: 8px 13px; border-radius: 9px; border: 1px solid var(--rule-2); background: var(--panel-2); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
-.btn:hover { border-color: var(--ink-3); }
-.btn i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.btn.quiet { font-weight: 400; color: var(--ink-2); }
-.check { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink-2); }
-.check input { width: 17px; height: 17px; accent-color: var(--files); }
-.fl { display: grid; gap: 8px; }
-.fx { border: 1px solid var(--rule-2); border-left-width: 5px; border-radius: 10px; padding: 9px 12px; background: var(--panel-2); display: grid; gap: 2px; }
-.fx.op { border-left-color: var(--gpu); } .fx.inv { border-left-color: var(--decoy); } .fx.sec { border-left-color: var(--bad); } .fx.none { border-left-color: var(--files); color: var(--ink-2); font-size: 14px; }
-.fx.ok { border-left-color: var(--files); } .fx.bad { border-left-color: var(--bad); }
-.fx b { font-family: var(--display); font-weight: 600; font-size: 16px; }
-.fx .r { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
-.fx .x { font-size: 14px; color: var(--ink-2); }
-.fx .n { font-size: 13px; color: var(--ink-3); border-left: 2px solid var(--rule-2); padding-left: 8px; }
-.rulecard .ring { opacity: .12; transition: opacity .3s; }
-.rulecard.lit .ring { opacity: 1; }
-.rulecard.lit .box { fill: var(--panel); }
-table.log { width: 100%; border-collapse: collapse; font-size: 13px; font-family: var(--mono); }
-table.log td, table.log th { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
-table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); }
-.logwrap { max-height: 220px; overflow: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel-2); }
-.kv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.kv div { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--ink-3); }
-.kv div b { display: block; font-family: var(--display); font-size: 22px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
-@media (max-width: 600px) { .kv { grid-template-columns: 1fr 1fr; } }
-.playbar { display: flex; align-items: center; gap: 10px; }
-.playbar input[type=range] { flex: 1; accent-color: var(--net); }
-.fp { font-family: var(--mono); font-size: 12px; word-break: break-all; padding: 8px 10px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--rule); }
-.fp.ok { border-color: var(--files); } .fp.bad { border-color: var(--bad); }
-.status { font-size: 14px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--rule-2); background: var(--panel-2); color: var(--ink-2); }
-.status.ok { border-color: var(--files); color: var(--good); } .status.bad { border-color: var(--bad); color: var(--bad); }
-
 .back { padding-block: 48px 64px; color: var(--ink-2); }
 .back .wrap { display: grid; gap: 16px; }
 .back h2 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0; }
@@ -239,13 +195,13 @@ table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); 
         <rect class="box" x="30" y="30" width="330" height="270" rx="16"/>
         <text class="t" x="54" y="64">compute-01</text><text class="s" x="54" y="84">one GPU server</text>
         <!-- utilization -->
-        <text x="54" y="124">GPU busy</text><text class="m" id="p1ut" x="336" y="124">35%</text><rect x="150" y="113" width="180" height="14" rx="7" fill="var(--rule)"/><rect id="p1u" x="150" y="113" width="63" height="14" rx="7" fill="var(--gpu)"/>
+        <text x="54" y="124">GPU busy</text><rect x="150" y="113" width="180" height="14" rx="7" fill="var(--rule)"/><rect class="breath" x="150" y="113" width="180" height="14" rx="7" fill="var(--gpu)"/>
         <!-- temperature gauge -->
         <text x="54" y="176">temperature</text>
-        <g transform="translate(240 200)"><path d="M-60 0 A60 60 0 0 1 60 0" fill="none" stroke="var(--rule)" stroke-width="10"/><path d="M20 -56 A60 60 0 0 1 60 0" fill="none" stroke="var(--bad)" stroke-width="10" opacity=".7"/><g id="p1n" style="transform: rotate(-8deg); transform-origin: 0 0; transition: transform .25s"><line x1="0" y1="0" x2="0" y2="-50" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/></g><circle r="5" fill="var(--ink)"/></g>
-        <text class="m" id="p1tt" x="226" y="222" text-anchor="middle" style="fill:var(--ink)">52 °C</text><text class="s" x="170" y="222">40</text><text class="s" x="290" y="222">95 °C</text><text class="s" x="246" y="140" style="fill: var(--bad)">85 °C line</text>
+        <g transform="translate(240 200)"><path d="M-60 0 A60 60 0 0 1 60 0" fill="none" stroke="var(--rule)" stroke-width="10"/><path d="M20 -56 A60 60 0 0 1 60 0" fill="none" stroke="var(--bad)" stroke-width="10" opacity=".7"/><g class="needle"><line x1="0" y1="0" x2="0" y2="-50" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/></g><circle r="5" fill="var(--ink)"/></g>
+        <text class="s" x="170" y="222">40 °C</text><text class="s" x="290" y="222">95 °C</text><text class="s" x="246" y="140" style="fill: var(--bad)">85 °C line</text>
         <!-- power -->
-        <text x="54" y="262">power</text><text class="m" id="p1p" x="150" y="262" style="font-size:16px">130 W</text>
+        <text x="54" y="262">power</text><g class="tick"><text class="m" x="150" y="262" style="font-size:16px">246 W</text></g>
         <!-- connections -->
         <path class="flow f-net" d="M360 110 C 520 110, 560 70, 700 70"/>
         <path class="flow f-net" d="M360 165 C 520 165, 560 165, 700 165"/>
@@ -257,19 +213,6 @@ table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); 
         <text class="s" x="960" y="175">Every one of these</text><text class="s" x="960" y="193">is a signal someone</text><text class="s" x="960" y="211">could listen to.</text>
       </svg>
     </div>
-    <div class="sim" id="sim1">
-      <h3>Drive the server yourself</h3>
-      <div class="row">
-        <div style="display:grid; gap:10px">
-          <label>Busy <span class="v" id="s1uV">35%</span><input id="s1u" type="range" min="0" max="100" value="35"></label>
-          <label>Temperature <span class="v" id="s1tV">52 °C</span><input id="s1t" type="range" min="30" max="100" value="52"></label>
-          <label class="check"><input type="checkbox" id="s1a"> an approved job is running</label>
-          <div class="btns"><button class="btn" data-p1="28,50,0"><i style="background:var(--grey)"></i>Idle</button><button class="btn" data-p1="90,69,1"><i style="background:var(--files)"></i>Approved training</button><button class="btn" data-p1="30,92,0"><i style="background:var(--gpu)"></i>Cooling fault</button><button class="btn" data-p1="88,68,0"><i style="background:var(--decoy)"></i>Mystery load</button></div>
-        </div>
-        <div class="fl" id="s1f"></div>
-      </div>
-    </div>
-
   </div>
 </section>
 
@@ -331,7 +274,7 @@ table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); 
             <g transform="translate(140 210)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/></g>
             <g transform="translate(210 210)"><rect class="box" width="56" height="56" rx="8"/><circle cx="12" cy="12" r="3" class="led d-good"/><circle cx="12" cy="24" r="3" class="led d-good"/><circle cx="12" cy="36" r="3" class="led d-good"/></g>
           </g>
-          <text class="s" x="40" y="330" id="p3n">16 servers shown. Each one has its own thermometer, camera, and door.</text>
+          <text class="s" x="40" y="330">16 servers shown. Each one has its own thermometer, camera, and door.</text>
         </g>
         <!-- streams converge -->
         <defs>
@@ -363,18 +306,12 @@ table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); 
         <text class="s" x="560" y="330">In the lab there is one server and one collector. In a cloud version the same lines would land in CloudWatch and S3 instead of a folder.</text>
       </svg>
     </div>
-    <div class="sim">
-      <h3>Add servers and watch the stream grow</h3>
-      <label>Servers in the hall <span class="v" id="s3nV">16</span><input id="s3n" type="range" min="1" max="500" value="16"></label>
-      <div class="counters">
-        <div class="ctr"><b id="c1">16 / s</b><span>GPU readings arriving</span></div>
-        <div class="ctr"><b id="c2">~10 / s</b><span>connections during the lab cycle</span></div>
-        <div class="ctr"><b id="c3">5.5 MB</b><span>GPU lines per hour, about 95 bytes each</span></div>
-        <div class="ctr"><b>1</b><span>kind of work the collector does, whatever the count</span></div>
-      </div>
-      <p style="font-size:13px; color: var(--ink-3); margin:0">The lab reads the last 4,000 lines per source each pass. Past a few dozen servers that is the first thing to redesign, which is why the cloud proposal moves lines into a managed store.</p>
+    <div class="counters">
+      <div class="ctr"><b>1 / s</b><span>GPU readings per server</span></div>
+      <div class="ctr"><b>~0.6 / s</b><span>connections per server in the lab cycle</span></div>
+      <div class="ctr"><b>4,000</b><span>lines the collector reads per source, per pass</span></div>
+      <div class="ctr"><b>1,500</b><span>evidence records kept in one snapshot</span></div>
     </div>
-
   </div>
 </section>
 
@@ -420,24 +357,6 @@ table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); 
         <text class="m" x="740" y="268">TelemetryBatch</text>
       </svg>
     </div>
-    <div class="sim">
-      <h3>Feed the funnel one line at a time</h3>
-      <div class="row">
-        <div class="btns">
-          <button class="btn" data-rec="good-gpu"><i style="background:var(--gpu)"></i>GPU reading, this run</button>
-          <button class="btn" data-rec="good-net"><i style="background:var(--net)"></i>connection from the worker</button>
-          <button class="btn" data-rec="old"><i style="background:var(--net)"></i>connection from last run</button>
-          <button class="btn" data-rec="dup"><i style="background:var(--net)"></i>same connection again</button>
-          <button class="btn" data-rec="nan"><i style="background:var(--gpu)"></i>GPU reading with a broken number</button>
-          <button class="btn" data-rec="other"><i style="background:var(--net)"></i>connection from another machine</button>
-          <button class="btn" data-rec="startup"><i style="background:var(--decoy)"></i>decoy startup message</button>
-          <button class="btn quiet" id="s4clear">Clear</button>
-        </div>
-        <div class="logwrap"><table class="log"><thead><tr><th>line</th><th>result</th><th>why</th></tr></thead><tbody id="s4log"></tbody></table></div>
-      </div>
-      <div class="kv"><div>kept<b id="s4k">0</b></div><div>dropped<b id="s4d">0</b></div><div>bad records counted<b id="s4b">0</b></div><div>reaches the rules<b id="s4r">0</b></div></div>
-    </div>
-
   </div>
 </section>
 
@@ -447,52 +366,51 @@ table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); 
     <div class="cap"><span class="no">5</span><div><h2>Rules are simple questions with numbers in them</h2><p>Each rule watches one thing. Two of them watch two things at once, and only count when the same machine and the same few seconds are involved.</p></div></div>
     <div class="scene" aria-label="Rule cards that light up when matching records pass">
       <svg viewBox="0 0 1100 360" role="img">
-        <g class="rulecard" data-rule="thermal" transform="translate(40 30)">
-          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--gpu)"/><rect class="ring" width="240" height="88" rx="12" fill="none" stroke="var(--gpu)" stroke-width="3"/>
+        <g transform="translate(40 30)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--gpu)"/><g class="glow"><rect width="240" height="88" rx="12" fill="none" stroke="var(--gpu)" stroke-width="3"/></g>
           <text class="t" x="16" y="30">Too hot?</text><text class="s" x="16" y="52">temperature ≥ 85 °C</text><text class="m" x="16" y="74">thermal</text>
         </g>
-        <g class="rulecard" data-rule="unapproved-compute" transform="translate(300 30)">
-          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--gpu)"/><rect class="ring" width="240" height="88" rx="12" fill="none" stroke="var(--gpu)" stroke-width="3"/>
+        <g transform="translate(300 30)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--gpu)"/><g class="glow" style="animation-delay:.4s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--gpu)" stroke-width="3"/></g>
           <text class="t" x="16" y="30">Busy with no job?</text><text class="s" x="16" y="52">≥ 70% and no approved job</text><text class="m" x="16" y="74">unapproved-compute</text>
         </g>
-        <g class="rulecard" data-rule="honeypot-contact" transform="translate(560 30)">
-          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--decoy)"/><rect class="ring" width="240" height="88" rx="12" fill="none" stroke="var(--decoy)" stroke-width="3"/>
+        <g transform="translate(560 30)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--decoy)"/><g class="glow" style="animation-delay:.8s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--decoy)" stroke-width="3"/></g>
           <text class="t" x="16" y="30">Touched the fake door?</text><text class="s" x="16" y="52">one event is enough</text><text class="m" x="16" y="74">honeypot-contact</text>
         </g>
-        <g class="rulecard" data-rule="port-spread" transform="translate(820 30)">
-          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--net)"/><rect class="ring" width="240" height="88" rx="12" fill="none" stroke="var(--net)" stroke-width="3"/>
+        <g transform="translate(820 30)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--net)"/><g class="glow" style="animation-delay:1.2s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--net)" stroke-width="3"/></g>
           <text class="t" x="16" y="30">Trying many doors?</text><text class="s" x="16" y="52">6 ports on one machine in 20 s</text><text class="m" x="16" y="74">port-spread</text>
         </g>
-        <g class="rulecard" data-rule="periodic-connection" transform="translate(40 140)">
-          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--net)"/><rect class="ring" width="240" height="88" rx="12" fill="none" stroke="var(--net)" stroke-width="3"/>
+        <g transform="translate(40 140)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--net)"/><g class="glow" style="animation-delay:1.6s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--net)" stroke-width="3"/></g>
           <text class="t" x="16" y="30">Too regular?</text><text class="s" x="16" y="52">6 calls, almost identical spacing</text><text class="m" x="16" y="74">periodic-connection</text>
         </g>
-        <g class="rulecard" data-rule="outbound-volume" transform="translate(300 140)">
-          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--net)"/><rect class="ring" width="240" height="88" rx="12" fill="none" stroke="var(--net)" stroke-width="3"/>
+        <g transform="translate(300 140)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--net)"/><g class="glow" style="animation-delay:2s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--net)" stroke-width="3"/></g>
           <text class="t" x="16" y="30">Too much, too fast?</text><text class="s" x="16" y="52">150 kB to one stranger in 60 s</text><text class="m" x="16" y="74">outbound-volume</text>
         </g>
-        <g class="rulecard" data-rule="access-policy-violation" transform="translate(560 140)">
-          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--files)"/><rect class="ring" width="240" height="88" rx="12" fill="none" stroke="var(--files)" stroke-width="3"/>
+        <g transform="translate(560 140)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--files)"/><g class="glow" style="animation-delay:2.4s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--files)" stroke-width="3"/></g>
           <text class="t" x="16" y="30">Told no?</text><text class="s" x="16" y="52">the cabinet refused a request</text><text class="m" x="16" y="74">access-policy-violation</text>
         </g>
-        <g class="rulecard" data-rule="integrity-failure" transform="translate(820 140)">
-          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--files)"/><rect class="ring" width="240" height="88" rx="12" fill="none" stroke="var(--files)" stroke-width="3"/>
+        <g transform="translate(820 140)">
+          <rect class="box" width="240" height="88" rx="12" style="stroke: var(--files)"/><g class="glow" style="animation-delay:2.8s"><rect width="240" height="88" rx="12" fill="none" stroke="var(--files)" stroke-width="3"/></g>
           <text class="t" x="16" y="30">Fingerprint changed?</text><text class="s" x="16" y="52">a file no longer matches the list</text><text class="m" x="16" y="74">integrity-failure</text>
         </g>
         <!-- joins -->
-        <g class="rulecard" data-rule="compute-network-overlap" transform="translate(170 250)">
-          <rect class="ring" width="370" height="88" rx="12" fill="none" stroke="var(--decoy)" stroke-width="3"/><rect class="box" width="370" height="88" rx="12" style="stroke: var(--ink-3)"/>
+        <g transform="translate(170 250)">
+          <rect class="box" width="370" height="88" rx="12" style="stroke: var(--ink-3)"/>
           <circle cx="24" cy="30" r="8" class="d-gpu"/><text x="40" y="35">+</text><circle cx="64" cy="30" r="8" class="d-net"/>
           <text class="t" x="86" y="35">Busy with no job, and a big upload</text><text class="s" x="16" y="58">same machine, within 5 seconds</text><text class="m" x="16" y="78">compute-network-overlap</text>
         </g>
-        <g class="rulecard" data-rule="asset-read-then-transfer" transform="translate(560 250)">
-          <rect class="ring" width="370" height="88" rx="12" fill="none" stroke="var(--files)" stroke-width="3"/><rect class="box" width="370" height="88" rx="12" style="stroke: var(--ink-3)"/>
+        <g transform="translate(560 250)">
+          <rect class="box" width="370" height="88" rx="12" style="stroke: var(--ink-3)"/>
           <circle cx="24" cy="30" r="8" class="d-files"/><text x="40" y="35">+</text><circle cx="64" cy="30" r="8" class="d-net"/>
           <text class="t" x="86" y="35">Read a dataset, then a big upload</text><text class="s" x="16" y="58">same machine, within 30 seconds</text><text class="m" x="16" y="78">asset-read-then-transfer</text>
         </g>
       </svg>
     </div>
-    <p style="font-size:14px;color:var(--ink-3);margin:10px 0 0">Cards light up as the run on page 7 reaches them. Press play there, or drag the playhead, and come back.</p>
     <div class="foot"><span class="gpu">from the thermometer</span><span class="net">from the camera</span><span class="decoy">from the fake door</span><span class="files">from the cabinet log</span></div>
   </div>
 </section>
@@ -521,20 +439,27 @@ table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); 
 <!-- PAGE 7: the two minute story -->
 <section class="page">
   <div class="wrap">
-    <div class="cap"><span class="no">7</span><div><h2>Two minutes in the lab, run by you</h2><p>Press play or drag the playhead. The records are generated with the lab's phase timing and the findings are computed by the same rules, live. Untick a behavior and its findings disappear: detection follows behavior, never the label.</p></div></div>
-    <div class="scene" aria-label="A timeline from 0 to 120 seconds with a playhead you control and findings appearing as the rules fire">
-      <svg viewBox="0 0 1100 300" role="img" id="p7svg">
+    <div class="cap"><span class="no">7</span><div><h2>Two minutes in the lab, as it really ran</h2><p>Watch the playhead. Findings appear only when the sensors earned them. The approved job on the left produces nothing, on purpose.</p></div></div>
+    <div class="scene" aria-label="A timeline from 0 to 120 seconds with a moving playhead and findings appearing in each phase">
+      <svg viewBox="0 0 1100 300" role="img">
         <g transform="translate(60 40)">
           <rect x="0" y="0" width="700" height="60" rx="8" fill="var(--panel-2)"/>
           <rect x="0" y="0" width="87.5" height="60" rx="8" fill="var(--files)" opacity=".18"/><rect x="87.5" y="0" width="87.5" height="60" fill="var(--files)" opacity=".18"/>
           <rect x="175" y="0" width="87.5" height="60" fill="var(--gpu)" opacity=".25"/><rect x="262.5" y="0" width="87.5" height="60" fill="var(--bad)" opacity=".22"/>
           <rect x="350" y="0" width="175" height="60" fill="var(--decoy)" opacity=".2"/><rect x="525" y="0" width="87.5" height="60" fill="var(--decoy)" opacity=".3"/><rect x="612.5" y="0" width="87.5" height="60" rx="8" fill="var(--files)" opacity=".18"/>
           <text class="s" x="8" y="22">quiet</text><text class="s" x="95" y="22">approved job</text><text class="s" x="183" y="22">cooling fault</text><text class="s" x="270" y="22">snooping</text><text class="s" x="358" y="22">heartbeat</text><text class="s" x="533" y="22">misuse</text><text class="s" x="620" y="22">quiet again</text>
-          <polyline id="p7temp" points="" fill="none" stroke="var(--gpu)" stroke-width="1.5" opacity=".9"/>
-          <line x1="0" y1="34" x2="700" y2="34" stroke="var(--bad)" stroke-dasharray="3 4" opacity=".6"/><text class="m" x="704" y="38" style="fill:var(--bad)">85 °C</text>
           <text class="m" x="0" y="80">0 s</text><text class="m" x="175" y="80">30 s</text><text class="m" x="350" y="80">60 s</text><text class="m" x="525" y="80">90 s</text><text class="m" x="680" y="80">120 s</text>
-          <g id="p7pops"></g>
-          <g id="p7head"><line x1="0" y1="-8" x2="0" y2="68" stroke="var(--ink)" stroke-width="2"/><circle cy="-8" r="5" fill="var(--ink)"/></g>
+          <g class="sweep"><line x1="0" y1="-8" x2="0" y2="68" stroke="var(--ink)" stroke-width="2"/><circle cy="-8" r="5" fill="var(--ink)"/></g>
+          <!-- findings popping -->
+          <g class="pop at20"><rect x="178" y="110" width="80" height="24" rx="6" fill="var(--panel-2)" stroke="var(--gpu)"/><text class="m" x="186" y="126">thermal</text></g>
+          <g class="pop at34"><rect x="265" y="110" width="88" height="24" rx="6" fill="var(--panel-2)" stroke="var(--bad)"/><text class="m" x="273" y="126">port-spread</text></g>
+          <g class="pop at36"><rect x="265" y="140" width="122" height="24" rx="6" fill="var(--panel-2)" stroke="var(--bad)"/><text class="m" x="273" y="156">honeypot-contact</text></g>
+          <g class="pop at62"><rect x="353" y="110" width="140" height="24" rx="6" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="m" x="361" y="126">periodic-connection</text></g>
+          <g class="pop at78"><rect x="528" y="110" width="140" height="24" rx="6" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="m" x="536" y="126">unapproved-compute</text></g>
+          <g class="pop at82"><rect x="528" y="140" width="122" height="24" rx="6" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="m" x="536" y="156">outbound-volume</text></g>
+          <g class="pop at84"><rect x="528" y="170" width="178" height="24" rx="6" fill="var(--panel-2)" stroke="var(--decoy)"/><text class="m" x="536" y="186">compute-network-overlap</text></g>
+          <g class="pop at86"><rect x="528" y="200" width="150" height="24" rx="6" fill="var(--panel-2)" stroke="var(--files)"/><text class="m" x="536" y="216">write blocked: EROFS</text></g>
+          <g class="pop at12"><text class="s" x="95" y="126" style="fill: var(--good)">nothing, correctly</text></g>
         </g>
         <text class="s" x="790" y="60">What the checker demands:</text>
         <text class="s" x="790" y="84">no finding during quiet or approved work,</text>
@@ -543,21 +468,6 @@ table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); 
         <text class="s" x="790" y="144">normal calls resuming afterwards,</text>
         <text class="s" x="790" y="164">and every finding traceable to raw lines.</text>
       </svg>
-    </div>
-    <div class="sim">
-      <div class="playbar"><button class="btn primary" id="p7play">Play</button><input id="p7scrub" type="range" min="0" max="120" value="0"><span class="mono" id="p7t">0 s</span></div>
-      <div class="row">
-        <div style="display:grid; gap:8px">
-          <h3>Behaviors in this run</h3>
-          <label class="check"><input type="checkbox" id="b-approved" checked> the 15 to 30 s job is approved</label>
-          <label class="check"><input type="checkbox" id="b-thermal" checked> cooling fault at 30 to 45 s</label>
-          <label class="check"><input type="checkbox" id="b-recon" checked> port knocks and decoy login at 45 s</label>
-          <label class="check"><input type="checkbox" id="b-beacon" checked> heartbeat every 3 s from 60 to 90 s</label>
-          <label class="check"><input type="checkbox" id="b-misuse" checked> unapproved load plus 66 kB uploads at 90 to 105 s</label>
-          <div class="kv"><div>phase<b id="p7phase" style="font-size:16px">quiet</b></div><div>busy<b id="p7u">22%</b></div><div>temperature<b id="p7tp">48 °C</b></div><div>bytes so far<b id="p7b">0</b></div></div>
-        </div>
-        <div><h3 style="margin-bottom:8px">Findings so far</h3><div class="fl" id="p7f"></div></div>
-      </div>
     </div>
   </div>
 </section>
@@ -677,127 +587,6 @@ table.log th { color: var(--ink-3); font-weight: 500; font-family: var(--body); 
     <small>Source: <a href="https://github.com/nsirivolu27/quantum-datacenter-anomaly" rel="noopener">quantum-datacenter-anomaly</a>. GPU readings on these pages are generated by a script; network, decoy, and the kernel's EROFS answer are real results from the last verified run. MIT license.</small>
   </div>
 </footer>
-<script>
-(function () {
-  var CFG = { thermal: 85, unapproved: 70, portThreshold: 6, beaconMin: 6, beaconMaxCv: 0.25, transferBytes: 50000, corrSeconds: 5, volumeWindow: 60, volumeBytes: 150000, worker: "compute-01" };
-  var INV = { worker: "172.20.0.6", api: "172.20.0.2", canary: "172.20.0.3", receiver: "172.20.0.4" };
-  var PORTS = [21, 22, 23, 80, 443, 445, 3389];
-  var NOT = { thermal: "Not proof of an attack. Check cooling and load.", "unapproved-compute": "The approved flag is simulated. Check job attribution before concluding misuse.", "honeypot-contact": "A touch, not a successful intrusion.", "port-spread": "Attempts, not access.", "periodic-connection": "Regular traffic can be benign. A candidate, not confirmed command and control.", "outbound-volume": "Bytes count both directions. Volume to review, not confirmed exfiltration.", "compute-network-overlap": "Joined on time and node only. Not proof the GPU process sent the data." };
-  function F(rule, cat, title, x, recs) { return { rule: rule, cat: cat, title: title, x: x, not: NOT[rule], count: recs.length, first: Math.min.apply(null, recs.map(function (r) { return r.ts; })) }; }
-  function mean(a) { return a.reduce(function (s, v) { return s + v; }, 0) / a.length; }
-  function pstdev(a) { var m = mean(a); return Math.sqrt(mean(a.map(function (v) { return (v - m) * (v - m); }))); }
-  function detect(gpu, flows, hits) {
-    var out = [], approved = {}; approved[INV.api] = 1; approved[INV.canary] = 1;
-    var hot = gpu.filter(function (g) { return g.temp >= CFG.thermal; });
-    if (hot.length) out.push(F("thermal", "op", "Thermal anomaly", "Temperature reached " + Math.max.apply(null, hot.map(function (g) { return g.temp; })).toFixed(1) + " °C; the limit is 85 °C.", hot));
-    var un = gpu.filter(function (g) { return g.util >= CFG.unapproved && !g.approved; });
-    if (un.length) out.push(F("unapproved-compute", "inv", "Compute activity without an approved job", "Utilization above 70% with no approved job in the registry.", un));
-    if (hits.length) out.push(F("honeypot-contact", "sec", "Internal decoy accessed", "The decoy recorded " + hits.length + " interaction(s) from the worker.", hits));
-    for (var i = 0; i < flows.length; i++) { var f = flows[i]; var w = flows.slice(0, i + 1).filter(function (o) { return o.dst === f.dst && o.ts >= f.ts - 20; }); var ports = {}; w.forEach(function (o) { ports[o.port] = 1; }); if (Object.keys(ports).length >= CFG.portThreshold) { out.push(F("port-spread", "sec", "Multiple destination ports probed", Object.keys(ports).length + " distinct ports on the decoy within 20 seconds.", w)); break; } }
-    var byDst = {}; flows.forEach(function (f) { if (!approved[f.dst]) (byDst[f.dst] = byDst[f.dst] || []).push(f); });
-    Object.keys(byDst).forEach(function (dst) { var g = byDst[dst]; for (var e = 0; e < g.length; e++) { var w2 = g.slice(0, e + 1).filter(function (o) { return o.ts >= g[e].ts - CFG.volumeWindow; }); var total = w2.reduce(function (s, o) { return s + o.bytes; }, 0); if (total >= CFG.volumeBytes) { out.push(F("outbound-volume", "inv", "Sustained transfer volume to an unapproved peer", total.toLocaleString() + " combined bytes across " + w2.length + " connections within 60 s.", w2)); break; } } });
-    var groups = {}; flows.forEach(function (f) { if (!approved[f.dst]) (groups[f.dst + ":" + f.port] = groups[f.dst + ":" + f.port] || []).push(f); });
-    Object.keys(groups).forEach(function (k) { var g = groups[k]; for (var end = CFG.beaconMin; end <= g.length; end++) { var w3 = g.slice(Math.max(0, end - 10), end); var iv = []; for (var j = 1; j < w3.length; j++) iv.push(w3[j].ts - w3[j - 1].ts); if (Math.min.apply(null, iv) <= 0 || mean(iv) > 30) continue; var cv = pstdev(iv) / mean(iv); if (cv <= CFG.beaconMaxCv) { out.push(F("periodic-connection", "inv", "Beacon-like connection pattern", w3.length + " connections to the receiver; mean spacing " + mean(iv).toFixed(1) + " s, variation " + cv.toFixed(2) + ".", w3)); break; } } });
-    var gg = gpu.filter(function (x) { return x.util >= CFG.unapproved && !x.approved && x.node === CFG.worker; }), m = [];
-    flows.forEach(function (f) { if (f.src !== INV.worker || approved[f.dst] || f.bytes < CFG.transferBytes) return; if (gg.some(function (x) { return Math.abs(x.ts - f.ts) <= CFG.corrSeconds; })) m.push(f); });
-    if (m.length) out.push(F("compute-network-overlap", "inv", "Unapproved compute overlaps an unusual transfer", "Unapproved GPU activity within 5 s of a connection carrying at least 50,000 combined bytes to an unapproved peer.", m));
-    return out.sort(function (a, b) { return a.first - b.first; });
-  }
-  function render(el, list, empty) {
-    if (!list.length) { el.innerHTML = '<div class="fx none">' + empty + '</div>'; return; }
-    el.innerHTML = list.map(function (f) { return '<div class="fx ' + f.cat + '"><b></b><span class="r"></span><span class="x"></span><span class="n"></span></div>'; }).join("");
-    Array.prototype.forEach.call(el.children, function (n, i) { n.querySelector("b").textContent = list[i].title; n.querySelector(".r").textContent = list[i].rule + " · " + list[i].count + " record(s)"; n.querySelector(".x").textContent = list[i].x; n.querySelector(".n").textContent = list[i].not; });
-  }
-
-  // page 1
-  var s1u = document.getElementById("s1u"), s1t = document.getElementById("s1t"), s1a = document.getElementById("s1a");
-  function paint1() {
-    var U = +s1u.value, T = +s1t.value, P = Math.round(45 + U * 2.4);
-    document.getElementById("s1uV").textContent = U + "%"; document.getElementById("s1tV").textContent = T + " °C";
-    document.getElementById("p1u").setAttribute("width", U * 1.8); document.getElementById("p1ut").textContent = U + "%";
-    document.getElementById("p1n").style.transform = "rotate(" + (-90 + (T - 40) / 55 * 180) + "deg)";
-    document.getElementById("p1tt").textContent = T + " °C"; document.getElementById("p1p").textContent = P + " W";
-    var list = detect([{ ts: 0, util: U, temp: T, approved: s1a.checked, node: "compute-01" }], [], []);
-    var off = T - (42 + U * 0.3);
-    if (!list.length && Math.abs(off) > 6) list = [{ rule: "window model, context only", cat: "inv", title: "Unusual shape for this load", x: "No rule crossed, but the temperature is " + off.toFixed(0) + " °C off the curve the simulator normally follows. This is what the Isolation Forest is for.", not: "A score, not a probability of attack.", count: 1 }];
-    render(document.getElementById("s1f"), list, s1a.checked ? "No finding. Busy with an approved job is expected work." : "No finding. This is the quiet baseline.");
-  }
-  [s1u, s1t, s1a].forEach(function (e) { e.addEventListener("input", paint1); e.addEventListener("change", paint1); });
-  Array.prototype.forEach.call(document.querySelectorAll("[data-p1]"), function (b) { b.addEventListener("click", function () { var v = b.getAttribute("data-p1").split(","); s1u.value = v[0]; s1t.value = v[1]; s1a.checked = v[2] === "1"; paint1(); }); });
-  paint1();
-
-  // page 3
-  var s3n = document.getElementById("s3n");
-  function paint3() {
-    var n = +s3n.value; document.getElementById("s3nV").textContent = n; document.getElementById("c1").textContent = n.toLocaleString() + " / s";
-    document.getElementById("c2").textContent = "~" + (n * 0.6).toFixed(n < 5 ? 1 : 0) + " / s";
-    var mb = n * 3600 * 95 / 1e6; document.getElementById("c3").textContent = (mb >= 1000 ? (mb / 1000).toFixed(1) + " GB" : mb.toFixed(1) + " MB");
-    document.getElementById("p3n").textContent = n + " server" + (n === 1 ? "" : "s") + " in the hall. Each one has its own thermometer, camera, and door.";
-  }
-  s3n.addEventListener("input", paint3); paint3();
-
-  // page 4
-  var k = 0, d = 0, b = 0, rows = [];
-  var REC = { "good-gpu": ["GPU reading, run b391, compute-01, 86%", "kept", "right run, every number present"], "good-net": ["conn Cq7 worker to receiver, 66 kB", "kept", "this worker, this run, new uid"], old: ["conn Cx1 from run a004", "dropped", "older run id"], dup: ["conn Cq7 again", "dropped", "uid already seen"], nan: ["GPU reading, temp NaN", "dropped", "non-finite number: counted as a bad record"], other: ["conn from 172.20.0.9", "dropped", "source is not the worker"], startup: ["decoy: service started", "dropped", "no src_host, not an interaction"] };
-  Array.prototype.forEach.call(document.querySelectorAll("[data-rec]"), function (btn) {
-    btn.addEventListener("click", function () {
-      var r = REC[btn.getAttribute("data-rec")]; rows.push(r);
-      if (r[1] === "kept") k++; else { d++; if (/bad record/.test(r[2])) b++; }
-      document.getElementById("s4log").innerHTML = rows.map(function (x) { return "<tr><td>" + x[0] + "</td><td style='color:" + (x[1] === "kept" ? "var(--good)" : "var(--ink-3)") + "'>" + x[1] + "</td><td>" + x[2] + "</td></tr>"; }).join("");
-      document.getElementById("s4k").textContent = k; document.getElementById("s4d").textContent = d; document.getElementById("s4b").textContent = b; document.getElementById("s4r").textContent = k;
-    });
-  });
-  document.getElementById("s4clear").onclick = function () { rows = []; k = d = b = 0; document.getElementById("s4log").innerHTML = ""; ["s4k", "s4d", "s4b", "s4r"].forEach(function (id) { document.getElementById(id).textContent = "0"; }); };
-
-  // page 7 and the page 5 cards
-  var PH = [["quiet", 0, 15], ["approved job", 15, 30], ["cooling fault", 30, 45], ["snooping", 45, 60], ["heartbeat", 60, 90], ["misuse", 90, 105], ["quiet again", 105, 120]];
-  function rnd(seed) { var s = seed; return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
-  var gpuAll = [], flowsAll = [], hitsAll = [];
-  function on(id) { return document.getElementById(id).checked; }
-  function build() {
-    var R = rnd(17); gpuAll = []; flowsAll = []; hitsAll = [];
-    for (var sec = 0; sec < 120; sec++) {
-      var ph = PH.filter(function (x) { return sec >= x[1] && sec < x[2]; })[0][0];
-      var busy = ph === "approved job" || (ph === "misuse" && on("b-misuse"));
-      var util = busy ? 80 + R() * 14 : 18 + R() * 20, temp = 42 + util * 0.3 + (R() * 4 - 2);
-      if (ph === "cooling fault" && on("b-thermal")) temp = 89 + R() * 6;
-      gpuAll.push({ ts: sec, util: +util.toFixed(1), temp: +temp.toFixed(1), approved: ph === "approved job" && on("b-approved"), node: "compute-01" });
-      if (sec % 2 === 0) flowsAll.push({ ts: sec, src: INV.worker, dst: INV.api, port: 8080, bytes: 200 + Math.round(R() * 30) });
-      if (sec === 45 && on("b-recon")) { for (var q = 0; q < 7; q++) flowsAll.push({ ts: 45 + q * 0.2, src: INV.worker, dst: INV.canary, port: PORTS[q], bytes: 0 }); flowsAll.push({ ts: 46.6, src: INV.worker, dst: INV.canary, port: 8080, bytes: 390 }); hitsAll.push({ ts: 46.6 }); }
-      if (ph === "heartbeat" && on("b-beacon") && (sec - 60) % 3 === 0) flowsAll.push({ ts: sec + 0.1, src: INV.worker, dst: INV.receiver, port: 8080, bytes: 141 });
-      if (ph === "misuse" && on("b-misuse") && (sec - 90) % 3 === 0) flowsAll.push({ ts: sec + 0.2, src: INV.worker, dst: INV.receiver, port: 8080, bytes: 66052 });
-    }
-    flowsAll.sort(function (a, b2) { return a.ts - b2.ts; });
-    document.getElementById("p7temp").setAttribute("points", gpuAll.map(function (g) { return (g.ts * 700 / 120) + "," + (60 - (g.temp - 40) / 60 * 56); }).join(" "));
-  }
-  var scrub = document.getElementById("p7scrub"), playing = false, timer = null;
-  function paint7() {
-    var T = +scrub.value; document.getElementById("p7t").textContent = T + " s";
-    var ph = PH.filter(function (x) { return T >= x[1] && T < x[2]; })[0] || PH[6];
-    document.getElementById("p7phase").textContent = ph[0];
-    var g = gpuAll.filter(function (x) { return x.ts <= T; }), f = flowsAll.filter(function (x) { return x.ts <= T; }), h = hitsAll.filter(function (x) { return x.ts <= T; });
-    var last = g[g.length - 1] || gpuAll[0];
-    document.getElementById("p7u").textContent = Math.round(last.util) + "%"; document.getElementById("p7tp").textContent = Math.round(last.temp) + " °C";
-    document.getElementById("p7b").textContent = f.reduce(function (s, x) { return s + x.bytes; }, 0).toLocaleString();
-    var list = detect(g, f, h);
-    render(document.getElementById("p7f"), list, T < 30 ? "Nothing. During quiet and approved work, nothing is the correct answer." : "Nothing so far.");
-    document.getElementById("p7head").setAttribute("transform", "translate(" + (T * 700 / 120) + " 0)");
-    var col = { op: "var(--gpu)", inv: "var(--decoy)", sec: "var(--bad)" }, out = "", used = [];
-    list.forEach(function (fd) { var x = Math.min(fd.first * 700 / 120, 560); var lane = 0; while (used.some(function (u) { return u.lane === lane && Math.abs(u.x - x) < 170; })) lane++; used.push({ lane: lane, x: x }); out += '<rect x="' + x + '" y="' + (110 + lane * 28) + '" width="' + (fd.rule.length * 7.2 + 16) + '" height="22" rx="6" fill="var(--panel-2)" stroke="' + col[fd.cat] + '"/><text class="m" x="' + (x + 8) + '" y="' + (110 + lane * 28 + 15) + '">' + fd.rule + '</text>'; });
-    if (T >= 20 && !list.some(function (fd) { return fd.first < 30; })) out += '<text class="s" x="95" y="124" style="fill: var(--good)">nothing, correctly</text>';
-    document.getElementById("p7pops").innerHTML = out;
-    var rules = {}; list.forEach(function (fd) { rules[fd.rule] = 1; });
-    Array.prototype.forEach.call(document.querySelectorAll(".rulecard"), function (c) { c.classList.toggle("lit", !!rules[c.getAttribute("data-rule")]); });
-  }
-  scrub.addEventListener("input", paint7);
-  ["b-approved", "b-thermal", "b-recon", "b-beacon", "b-misuse"].forEach(function (id) { document.getElementById(id).addEventListener("change", function () { build(); paint7(); }); });
-  document.getElementById("p7play").onclick = function () {
-    playing = !playing; this.textContent = playing ? "Pause" : "Play";
-    if (playing) { if (+scrub.value >= 120) scrub.value = 0; timer = setInterval(function () { scrub.value = +scrub.value + 1; paint7(); if (+scrub.value >= 120) { clearInterval(timer); playing = false; document.getElementById("p7play").textContent = "Play"; } }, 200); } else clearInterval(timer);
-  };
-  build(); paint7();
-})();
-</script>
 
 </body>
 </html>

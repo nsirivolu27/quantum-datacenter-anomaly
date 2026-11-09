@@ -1,52 +1,29 @@
 # Proposed AWS architecture
 
-**Status: proposed, not deployed.** Nothing in this repository reads from or
-writes to AWS. No account was configured, no resource was created, and no
-deployment template exists. This page describes how AWS services could host the
-lab from [the local security lab](09-local-security-lab.md) and
-[data security and integrity](13-data-security-and-integrity.md), and it lists
-what is still missing in code before any of it could run.
+**Status: proposed, not deployed.** This document describes how AWS services could
+host the lab described in [the local security lab](09-local-security-lab.md) and
+[data security and integrity](13-data-security-and-integrity.md). No AWS account
+was configured, no resource was created, and no deployment template exists in
+this repository. Every section ends with what is missing in code before the
+proposal could run. Facts about AWS services below were checked against the
+official documentation linked at the end on 2026-11-04; service behavior changes,
+so re-check before building.
+The local integration interfaces and the cited S3, KMS, and Systems Manager
+corrections below were reviewed on 2026-11-05. AWS remains proposed, not deployed.
 
-AWS facts below were checked against the official documentation linked at the
-end on 2026-11-04. The local integration interfaces and the S3, KMS, and Systems
-Manager corrections were reviewed on 2026-11-05. Service behavior changes, so
-re-check before building.
-
-## How to read this page
-
-1. [The idea in one paragraph](#the-idea-in-one-paragraph)
-2. [What exists today](#what-exists-today)
-3. [The picture](#the-picture)
-4. [Who may do what](#who-may-do-what)
-5. [One service at a time](#one-service-at-a-time), each with the same three parts: what it does here, what to watch out for, what is missing
-6. [How data moves](#how-data-moves)
-7. [What changes in the code](#what-changes-in-the-code)
-8. [Limits](#limits) and [references](#official-references)
-
-## The idea in one paragraph
-
-Three machines sit in a private network with no internet gateway. The
-**workload** instance runs the GPU work and the traffic generator. The
-**monitoring** instance runs Zeek, the Python collector, and the rule packs. The
-**decoy** instance runs OpenCanary and nothing else. They reach AWS services only
-through private endpoints. GPU numbers go to CloudWatch, logs go to CloudWatch
-Logs, artifacts and evidence go to S3 under version locks, signatures come from
-KMS, and CloudTrail records who did what. People get in through Session Manager,
-not SSH. The rules that decide what is an anomaly stay exactly where they are
-today: in `framework.py` on the monitoring instance.
-
-## What exists today
+## What the repository contains today
 
 | Item | Actual state |
 |---|---|
 | CloudWatch loader (`src/qdc_anomaly/data/cloudwatch.py`) | Does not exist. Older text in lessons 2 and 8 described it as present; both lessons now say so. `qdc score --input` reads any CSV with the expected columns. |
 | Amazon Braket examples (lesson 8) | Code snippets only. The device ARNs are historical examples, the S3 destination is a placeholder, and nothing in `src/` calls Braket. |
 | `boto3` in `pyproject.toml` | Listed under the optional `aws` extra. No module imports it. |
-| Local security package | `Authenticator` and `ArtifactBackend` interfaces exist, with local HMAC and directory implementations only. Inventory schema 2 supports optional locations. No cloud signing or storage. |
+| Local security package | `Authenticator` and `ArtifactBackend` interfaces now exist, with local HMAC and directory implementations only. Inventory schema 2 supports optional locations. No cloud signing or storage. |
 
-Everything below is a design. The "Missing" lines are the work list.
+Nothing in the repository reads from or writes to AWS. The sections below are a
+design, and the "missing" rows are the work list.
 
-## The picture
+## Trust boundaries first
 
 ```text
                       +-------------------------------- VPC (no internet gateway) ---------------------------------+
@@ -67,307 +44,265 @@ Everything below is a design. The "Missing" lines are the work list.
                                                 evidence/audit        sign/verify    data events
 ```
 
-Subnets separate blast radius and routing. They are not access control. Security
-groups, IAM policies, bucket policies, and KMS key policies are what decide who
-may do what.
+Three roles never share credentials: the workload publishes its own telemetry and
+reads approved artifacts; the collector reads observations and writes evidence;
+a publisher/approver, who is a person or a CI job and not an instance in this
+VPC, publishes artifacts and approves baselines. An auditor reads and verifies.
+Subnets separate blast radius and routing, but subnet separation is not access
+control: security groups, IAM policies, bucket policies, and KMS key policies are
+what actually decide who may do what.
 
-## Who may do what
-
-Four roles, and none of them share credentials. The publisher is a person or a CI
-job outside the VPC, never an instance inside it.
-
-| Role | Runs where | Allowed | Explicitly not allowed |
-|---|---|---|---|
-| workload | Workload instance | Read specific artifact versions (`s3:GetObjectVersion`). Publish its own metrics and logs (`cloudwatch:PutMetricData`, `logs:PutLogEvents`). Decrypt those objects (`kms:Decrypt` on the storage key). | Write artifacts, manifests, evidence, or audit. `kms:Sign` or `kms:GenerateMac`. Approve anything. |
-| collector | Monitoring instance | Read Zeek, OpenCanary, and GPU sources. Create evidence and audit batch objects, conditionally. Sign evidence (`kms:Sign` or `kms:GenerateMac` on the evidence key). | Delete evidence or replace existing keys. Write artifacts or manifests. |
-| publisher / approver | A person or CI job outside the VPC | `s3:PutObject` to artifacts and manifests. `kms:Sign` on the manifest key. Write the approval audit record. | Run as an instance role inside the VPC. Delete audit history. |
-| auditor | Anywhere with read access | `s3:GetObject` and `s3:GetObjectVersion` on required objects. `kms:Verify` or `kms:VerifyMac`, `kms:GetPublicKey`. Read CloudTrail and CloudWatch. | Any write. |
-
-Two facts shape this table.
-
-- An instance role is a per host identity, not a per process one. Its credentials
-  are served by the instance metadata service (use IMDSv2) to anything on that
-  host. If the worker and collector ever share a host, they share its role.
-  Separate instances, or ECS task roles with container access to IMDS blocked,
-  are how to keep them apart.
-- The workload must never hold `kms:Sign` on the manifest key or write access to
-  the approved pointer, so it cannot approve its own baseline. No role inside the
-  VPC may delete audit objects.
-
-All roles use temporary STS credentials. No long lived access keys.
-
-Missing: policy documents; a credential provider setting in configuration; a
-test that the workload role is denied `PutObject` on manifests.
-
-## One service at a time
-
-### A. Amazon EC2: the three machines
-
-What runs where:
+## A. Amazon EC2
 
 | Component today | Proposed placement | Notes |
 |---|---|---|
 | `lab/worker.py` traffic generator | Workload instance | Same fixed peers, now other instances or private DNS names instead of Compose service names. |
-| `lab/simulator.py` GPU samples | Workload instance, initial option | Stays simulated and labeled `simulated: true` as today. |
-| Real GPU metrics | Separate future option | A GPU instance family (G6, G6e, P5 for example) with the NVIDIA driver, or an AMI that ships it. The CloudWatch agent's `nvidia_gpu` section or the DCGM exporter then replaces the simulator. Nothing else in this design needs it. |
-| Zeek | Monitoring instance, or on the workload host | See section C. |
+| `lab/simulator.py` GPU samples | Workload instance, initial option | Stays simulated. Clearly labeled `simulated: true` as today. |
+| Real GPU metrics | Separate future option | A GPU instance family (for example G6, G6e, P5) with the NVIDIA driver installed, or an AMI that ships it. The CloudWatch agent's `nvidia_gpu` section or the DCGM exporter then replaces the simulator. Not required for anything else in this design. |
+| Zeek | Monitoring instance (sensor) or on the workload host | See section C. |
 | OpenCanary | Decoy instance in its own subnet | Only the HTTP decoy, as in `lab/opencanary.conf`. |
 | Python detection and correlation (`lab/collector.py`, `lab/framework.py`, `security/`) | Monitoring instance | Reads local or mirrored sensor output plus CloudWatch, writes findings and evidence. |
 
-Watch out for: no instance has a public IP, so software arrives through a
-prepared AMI or from an S3 bucket you control through the gateway endpoint.
-Private subnets cannot reach package registries without a NAT gateway or a proxy,
-and either of those is one more thing to secure.
+No instance has a public IP. Software arrives through a prepared AMI or through
+the S3 gateway endpoint from a bucket you control, since private subnets cannot
+reach package registries without a NAT gateway or a proxy you also have to secure.
 
-Missing: an AMI or user data build that installs the package; a systemd unit per
+Missing: an AMI or user-data build that installs the package; a systemd unit per
 role; an EC2 variant of `lab/settings.json` that names peers by private DNS.
 
-### B. Amazon VPC: the private network
-
-What it does here:
+## B. Amazon VPC
 
 - One VPC, no internet gateway, three private subnets (workload, monitoring,
   decoy), each with its own route table.
-- Security groups do the real work. The workload may reach the API peer, the
-  receiver, and the decoy on their service ports and nothing else. The decoy
-  accepts from the workload subnet only. The monitoring instance accepts VXLAN
-  (UDP 4789) from mirror sources and nothing else inbound. Egress is limited to
-  the declared peer ports, the endpoint security groups on 443, and the S3
-  managed prefix list on 443.
+- Security groups: the workload may reach the API peer, the receiver, and the
+  decoy on their service ports and nothing else; the decoy accepts from the
+  workload subnet only; the monitoring instance accepts VXLAN (UDP 4789) from
+  mirror sources and nothing inbound otherwise. Egress is limited to the declared
+  peer ports, endpoint security groups on 443, and the S3 managed prefix list on
+  443. A broad allow to the entire VPC CIDR would defeat the peer restrictions.
+- Network ACLs as a coarse backstop; they cannot reference prefix lists, so the S3
+  gateway prefix list must be allowed in NACLs by CIDR ranges if NACLs are used.
 - Interface endpoints (PrivateLink) for CloudWatch Logs (`logs`), CloudWatch
-  (`monitoring`), KMS, STS, `ssm`, and `ssmmessages`. A gateway endpoint for S3
-  in every route table. Endpoint policies can narrow which buckets or keys are
-  reachable through them.
-
-Watch out for:
-
-- A broad allow to the whole VPC CIDR would defeat the peer restrictions.
-- Network ACLs are a coarse backstop only. They cannot reference prefix lists, so
-  if you use them, the S3 prefix list must be allowed by CIDR range.
-- Private DNS must be on for the default service hostnames to resolve to the
-  endpoints.
-- `ec2messages` is a legacy endpoint that depends on region and agent version,
-  not a universal requirement. See section I.
+  (`monitoring`), KMS, STS, `ssm`, and `ssmmessages`; a gateway
+  endpoint for S3 added to each route table. Private DNS must be enabled on the
+  VPC for the default service hostnames to resolve to the endpoints. Endpoint
+  policies can further restrict which buckets or keys are reachable through them.
+  `ec2messages` is a legacy option depending on the region and agent, not a
+  universal requirement; see section I.
 
 Missing: everything. No VPC definition exists in this repository, and the request
-for this document excluded generating one.
+for this document explicitly excludes generating one.
 
-### C. Network collection: three ways to see traffic
+## C. Network collection: three different inputs
 
-| Option | What it gives | Fit with the current code |
+| Option | What it gives | Fit with current code |
 |---|---|---|
-| Host local Zeek on the workload instance | The same `conn.log` as today, same latency, same fields. | `adapters.py` reads it unchanged once the path is set. The preferred first step. |
-| VPC Traffic Mirroring to a dedicated sensor | Packet copies of the workload network interface, VXLAN encapsulated, delivered to an interface, NLB, or Gateway Load Balancer endpoint. Zeek on the sensor must decapsulate VXLAN (listen on UDP 4789). | The output is the same log, so `adapters.py` still works, but timing and drop behavior must be validated before claiming it matches the local lab. |
-| VPC Flow Logs | Per flow metadata (addresses, ports, protocol, packets, bytes, start and end, action) to CloudWatch Logs, S3, or Firehose. No payload, no Zeek style connection state. | Does not fit the seconds level rules: `port-spread` uses 20 second windows, `periodic-connection` needs individual connection timestamps, correlation uses a 5 second window. Flow Logs are extra evidence, not a replacement. |
-
-Watch out for, with mirroring: it is out of band, so it observes and never
-blocks, and it cannot decrypt TLS. Mirrored traffic counts against the source's
-bandwidth and is dropped first under pressure. Not every instance type can be a
-source. ARP, DHCP, IMDS, and NTP are not mirrored.
-
-Watch out for, with Flow Logs: aggregation is 10 minutes by default, 1 minute as
-an option (Nitro instances report at 1 minute or less). Delivery typically lags
-about 5 minutes to CloudWatch Logs and about 10 minutes to S3. Flow Logs do not
-include mirrored traffic.
+| Host-local Zeek on the workload instance | Same `conn.log` as today, same latency, same fields. | `adapters.py` reads it unchanged after the path is set. Preferred first step. |
+| VPC Traffic Mirroring to a dedicated sensor | Packet copies of the workload ENI delivered VXLAN-encapsulated to an ENI, NLB, or Gateway Load Balancer endpoint. Zeek on the sensor must decapsulate VXLAN (listen on UDP 4789). Mirroring is out of band: it observes, does not block, and cannot decrypt TLS payloads. Mirrored traffic counts against the source's bandwidth and is dropped first under pressure, so production traffic is prioritized. Not every instance type is a supported source; check the official list for the chosen family. ARP, DHCP, IMDS, and NTP are not mirrored. | Zeek output is the same log, so `adapters.py` still works, but timing and drop behavior must be validated before any claim that it matches the local lab. |
+| VPC Flow Logs | Aggregated metadata per flow (addresses, ports, protocol, packets, bytes, start and end, action) delivered to CloudWatch Logs, S3, or Firehose. Default aggregation 10 minutes, optional 1 minute (Nitro instances report at 1 minute or less), with typical delivery delay of about 5 minutes to CloudWatch Logs and about 10 minutes to S3. No payload and no Zeek-style connection state. | Does not fit the current seconds-level rules (`port-spread` uses 20-second windows, `periodic-connection` needs individual connection timestamps, correlation uses a 5-second window). Flow Logs are additional evidence, not a drop-in replacement; using them would need new rules and a new validation run. Flow Logs also do not include mirrored traffic. |
 
 Missing: a `FlowLogAdapter` if Flow Logs are ever used; a sensor AMI with Zeek
-configured for VXLAN; a validation script that compares mirrored and host local
+configured for VXLAN; a validation script comparing mirrored and host-local
 `conn.log` for the same traffic cycle.
 
-### D. Amazon CloudWatch: where the numbers and logs go
+## D. Amazon CloudWatch
 
-What flows in:
+What would flow in:
 
-- GPU measurements. Simulated samples become custom metrics with a dimension such
-  as `source=simulated`, keeping the label the code already carries. Real
-  measurements come from the CloudWatch agent's `nvidia_gpu` section, which runs
-  on Linux hosts with the NVIDIA driver and `nvidia-smi` installed and publishes
-  metrics prefixed `nvidia_smi_` (including `utilization_gpu`, `memory_used`,
-  `temperature_gpu`, `power_draw`) with `index`, `name`, and `arch` dimensions.
-  The agent documentation lists this section for Linux only.
-- Zeek and OpenCanary logs through the agent's log collection, one log group per
-  source, keeping the original JSON line and its own timestamp.
-- Application findings and source health signals (`health` in the snapshot) as a
+- GPU measurements. Simulated samples would be published as custom metrics with a
+  dimension such as `source=simulated`, keeping the label the code already carries.
+  Real measurements come from the CloudWatch agent `nvidia_gpu` section, which
+  runs on Linux hosts with the NVIDIA driver and `nvidia-smi` installed and
+  publishes metrics prefixed `nvidia_smi_` (including `utilization_gpu`,
+  `memory_used`, `temperature_gpu`, `power_draw`) with `index`, `name`, and `arch`
+  dimensions. The agent documentation lists this section for Linux only.
+- Zeek and OpenCanary logs via the CloudWatch agent log collection, one log group
+  per source, keeping the original JSON line and its own timestamp.
+- Application findings and source-health signals (`health` in the snapshot) as a
   structured log stream from the collector.
 
-Watch out for:
+Why source identity and timestamps matter: the collector already joins records
+by `node_id`, worker IP, and event time, and `generated_at` is separate from
+observation time. Publishing must keep those fields, not replace them with
+ingestion time.
 
-- Identity and time must survive the trip. The collector joins records by
-  `node_id`, worker IP, and event time, and keeps `generated_at` separate from
-  observation time. Publishing must keep those fields, not swap in ingestion time.
-- CloudWatch has no idea whether a job is approved. `job_approved` still has to
-  come from a scheduler or identity source.
-- CloudWatch does not run the Python rule packs. Threshold alarms are possible,
-  but the cross source rules stay in `framework.py` on the monitoring instance.
-  A container or Lambda version is not proposed here.
+What CloudWatch does not do: it has no idea whether a job is approved, so
+`job_approved` would still have to come from a scheduler or identity source. It
+does not run the Python rule packs; alarms on thresholds are possible, but the
+cross-source rules stay in `framework.py` on the monitoring instance (or in a
+later container or Lambda, which is not proposed here).
 
 Missing: a `CloudWatchMetricAdapter` and `CloudWatchLogsAdapter` implementing the
-`SourceAdapter` protocol; the agent configuration files; the `data/cloudwatch.py`
-loader for the benchmark CLI, which would read metric data into the `qdc score`
-CSV layout.
+`SourceAdapter` protocol; the agent configuration files; and the long-promised
+`data/cloudwatch.py` loader for the benchmark CLI, which would read metric data
+into the `qdc score` CSV layout.
 
-### E. Amazon S3: four buckets, each locked differently
+## E. Amazon S3
 
-| Bucket | Holds | Controls |
+| Bucket (logical) | Holds | Controls |
 |---|---|---|
-| artifacts | Approved datasets, model artifacts, configuration | Versioning on. SSE-KMS with the storage key. Block Public Access on. Bucket policy: writes only from the publisher role, reads from the workload and collector roles. Manifests name the exact object version id, so "approved" means a specific version, never "latest". |
+| artifacts | Approved datasets, model artifacts, configuration | Versioning on, SSE-KMS with the storage key, Block Public Access on, bucket policy allowing writes only from the publisher role, reads from workload and collector roles. Manifests reference the exact object version id, so "approved" means a specific version, never "latest". |
 | manifests | Baseline manifests and the approved pointer | Same, plus writes allowed only to the approver role. Object Lock in compliance mode on manifest versions if retention is justified. |
-| evidence | Sealed evidence exports | The collector writes unique keys with conditional creation and has no delete permission. Object Lock in governance mode with a chosen retention; legal hold for anything under review. |
-| audit | Exported audit batches and CloudTrail logs, in separate prefixes | Application audit batches are new objects, never in place JSONL appends. The auditor reads. Deletion and lifecycle respect retention. CloudTrail writes its own prefix through its service policy. |
+| evidence | Sealed evidence exports | Collector writes unique object keys with conditional creation, no delete permission. Object Lock governance mode with a chosen retention period; legal hold for anything under review. |
+| audit | Exported audit batches and CloudTrail logs in separate prefixes | Application audit batches use new object keys, not in-place JSONL append. Auditor reads; deletion and lifecycle respect retention policies. CloudTrail writes its own prefix through its service policy. |
 
-Watch out for:
+Object Lock works only with versioning on and protects specific object versions
+from deletion or overwrite for the retention period (compliance mode cannot be
+shortened by anyone, governance mode can be bypassed by principals with
+`s3:BypassGovernanceRetention`). It does not prevent new versions from being
+written, and it does not make the newest version trustworthy. That is exactly why
+the approved pointer from lesson 13 is needed in the cloud too: the pointer names
+which manifest version is approved, and the manifest names which artifact
+versions are approved.
 
-- Object Lock needs versioning on. It protects specific object versions from
-  deletion or overwrite for the retention period. Compliance mode cannot be
-  shortened by anyone; governance mode can be bypassed by principals with
-  `s3:BypassGovernanceRetention`.
-- Object Lock does not stop new versions from being written, and it does not make
-  the newest version trustworthy. That is exactly why the approved pointer from
-  lesson 13 is still needed: the pointer names which manifest version is approved,
-  and the manifest names which artifact versions are approved.
-- `PutObject` permission alone does not stop someone writing another version at
-  an existing key. The evidence writer must use `If-None-Match: *`, enforced by
-  bucket policy, with unique keys and retention controls. See
-  [conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html).
+`PutObject` permission alone does not prohibit writing another version at an
+existing key. The proposed evidence writer must use `If-None-Match: *`, enforced
+by bucket policy, with unique keys and retention controls. General-purpose S3
+audit exports would likewise be new batch objects, not append calls on the local
+JSONL file. [Conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html).
 
 Missing: an `S3ArtifactBackend` implementing `security.backends.ArtifactBackend`,
-with a relative path to bucket and version map built from the inventory; remote
-manifest and pointer persistence; audit and evidence uploads; CLI wiring;
-retention and concurrency decisions. The local backend rejects S3 locations, and
-inventory loading still requires a local root, so a remote only inventory also
-needs loader work.
+with a relative-path-to-bucket/version map built from the inventory; remote
+manifest/pointer persistence; audit/evidence uploads; CLI wiring; retention and
+concurrency decisions. The local backend rejects S3 locations. Inventory loading
+still requires a local root, so a remote-only inventory also needs loader work.
 
-### F. AWS IAM: the permissions behind the role table
+## F. AWS IAM
 
-The role table above is the design. Two details matter when writing the policies:
+| Role | Allowed | Explicitly not allowed |
+|---|---|---|
+| workload | `s3:GetObjectVersion` for version-specific artifact reads; `cloudwatch:PutMetricData` and `logs:PutLogEvents` to its own namespaces and streams; `kms:Decrypt` on the storage key for those objects. | Any write to artifacts, manifests, evidence, or audit; `kms:Sign` or `kms:GenerateMac`; approving anything. |
+| collector | Read Zeek/OpenCanary/GPU sources; conditionally create evidence and audit batch objects; `kms:Sign` or `kms:GenerateMac` on the evidence key. | Delete evidence or replace existing keys; write artifacts or manifests. |
+| publisher/approver | `s3:PutObject` to artifacts and manifests; `kms:Sign` on the manifest key; write the approval audit record. Used by a person or CI job outside the VPC. | Run as an instance role inside the VPC; delete audit history. |
+| auditor | `s3:GetObject` and `s3:GetObjectVersion` on required objects; `kms:Verify` or `kms:VerifyMac`; `kms:GetPublicKey`; read CloudTrail and CloudWatch. | Any write. |
 
-- Reading an explicit version requires `s3:GetObjectVersion`; an unversioned read
-  uses `s3:GetObject`. See
-  [GetObject permissions](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html).
-- IAM does not understand this project's manifest. Limiting a role to exactly the
-  approved versions needs separately maintained policy conditions or a controlled
-  artifact service. The application must still verify the approved manifest before
-  it consumes any bytes.
+An explicit version read requires `s3:GetObjectVersion`, whereas an unversioned
+read uses `s3:GetObject`. IAM does not interpret this project's manifest: limiting
+a role to exactly approved versions needs separately maintained policy conditions
+or a controlled artifact service. The application must still verify the approved
+manifest before consuming bytes. [GetObject permissions](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html).
 
-Missing: see the role table.
+All of these are roles assumed with temporary STS credentials; no long-lived
+access keys. Two facts shape the design. First, an EC2 instance profile's
+credentials are served by the instance metadata service (use IMDSv2) to anything
+on that host that can reach it, so an instance role is a per-host identity, not a
+per-process or per-container one. If worker and collector ever share a host,
+they share its role. Separate instances, or ECS task roles with IMDS access
+blocked from containers, are how to separate them. Second, the workload must
+never hold `kms:Sign` on the manifest key or write access to the pointer, so it
+cannot approve its own baseline, and no role in the VPC may delete audit objects.
 
-### G. AWS KMS: encryption and signatures are two different keys
+Missing: policy documents; a credential provider setting in configuration; a
+test that the workload role is denied `PutObject` on manifests.
 
-- A symmetric key (`SYMMETRIC_DEFAULT`) for SSE-KMS on the buckets. Writers get
-  `kms:GenerateDataKey`, readers get `kms:Decrypt`. Symmetric keys encrypt and
-  decrypt; they do not sign.
-- A signing key for manifests and evidence. Two options:
-  - An asymmetric key pair with key usage `SIGN_VERIFY` (RSA or ECC). `kms:Sign`
-    and `kms:Verify` are separate permissions, and the public key can be exported
-    with `GetPublicKey` for offline verification.
-  - A KMS HMAC key used through `GenerateMac` and `VerifyMac`. The key material
-    never leaves KMS. The message limit is 4,096 bytes, so the input would be the
-    SHA-256 digest of the canonical manifest or bundle, not the document itself.
-    The same digest first approach works for RSA and ECC `Sign` when
-    `MessageType` is `DIGEST`. See the [Sign API](https://docs.aws.amazon.com/kms/latest/APIReference/API_Sign.html).
+## G. AWS KMS
 
-Why this is better than the local setup: locally, anyone who can read
-`integrity.key` can both create and verify tags, and that file is the weak point.
-In KMS nobody can read the private key or HMAC material. The key policy decides
-which role may sign (publisher for manifests, collector for evidence) and which
-may verify (auditor, workload), and every `Sign` call is a CloudTrail event tied
-to a role. Separating signing from the workload becomes a policy statement
-instead of a file permission.
+The proposal separates storage encryption from document authentication. The local
+implementation provides authentication only; it does not encrypt assets:
 
-What does not change: a valid signature proves who signed and that the content is
-unchanged. It does not prove the approved content was correct or that a sensor
-measured truthfully. Encryption alone says nothing about approval.
+- A symmetric encryption key (`SYMMETRIC_DEFAULT`) for SSE-KMS on the buckets.
+  Its policy grants `kms:GenerateDataKey` to writers and `kms:Decrypt` to readers.
+  Symmetric KMS keys encrypt and decrypt; they do not sign.
+- A signing key for manifests and evidence. Either an asymmetric key pair with
+  key usage `SIGN_VERIFY` (RSA or ECC key specs) where `kms:Sign` and
+  `kms:Verify` are separate permissions and the public key can be exported with
+  `GetPublicKey` for offline verification, or a KMS HMAC key used through
+  `GenerateMac` and `VerifyMac`, whose key material never leaves KMS. The HMAC
+  key message limit is 4,096 bytes, so the input would be the SHA-256 digest of
+  the canonical manifest or bundle, not the document itself. The same digest-first
+  approach works for the proposed RSA/ECC `Sign` algorithms when `MessageType`
+  is `DIGEST`, avoiding a second hash. [Sign API](https://docs.aws.amazon.com/kms/latest/APIReference/API_Sign.html).
+
+How this differs from the local approach: locally, anyone who can read
+`integrity.key` can both create and verify tags, and the key file is the weak
+point. In KMS the private key or HMAC material cannot be read by anyone; the key
+policy decides which role may sign (publisher for manifests, collector for
+evidence) and which may verify (auditor, workload), and every `Sign` call is a
+CloudTrail event tied to a role. Separation of signing from the workload becomes a
+policy statement instead of a file permission. The limits stay: a valid signature
+proves who signed and that content is unchanged, not that the approved content
+was correct or that a sensor measured truthfully, and encryption alone says
+nothing about approval.
 
 Missing: a `KmsAuthenticator` implementing `security.authenticators.Authenticator`
 (`algorithm`, `key_id`, `sign`, `verify`). `integrity.authenticate` and
 `verify_authenticated` already delegate to that interface using canonical bytes;
-`LocalHmacAuthenticator` is the only implementation. The KMS adapter would hash
-inside `sign` and `verify` and label that format with a distinct algorithm name,
-since digest first KMS HMAC is not the existing raw document HMAC format. The
-compatibility field `auth.mac` would hold a hex encoded tag or signature. Key
-selection must come from trusted configuration, never from an untrusted
-document's key id. No KMS calls or configuration are implemented.
+`LocalHmacAuthenticator` is the only implementation. A future adapter would hash
+inside its `sign`/`verify` methods as required and identify that format with a
+distinct algorithm label. Digest-first KMS HMAC is not the existing raw-document
+HMAC format. The compatibility field `auth.mac` would hold a hex-encoded tag or
+signature. Key selection must come from trusted configuration, not an untrusted
+document's key ID. No KMS calls or configuration are implemented.
 
-### H. AWS CloudTrail: the record of who did what
+## H. AWS CloudTrail
 
-What it does here: a trail covering management events records IAM policy
-changes, KMS key policy changes, bucket policy changes, role assumptions, and
-every `kms:Sign`.
+A trail covering management events records IAM policy changes, KMS key policy
+changes, bucket policy changes, role assumptions, and every `kms:Sign`. S3
+object-level reads and writes are data events and are not logged by default; they
+must be enabled with event selectors (or advanced event selectors for field
+filtering) on the artifacts, manifests, evidence, and audit buckets, and they are
+billed separately. Without data events, "who read this dataset" has no answer in
+CloudTrail.
 
-Watch out for:
-
-- S3 object reads and writes are data events and are not logged by default. They
-  must be enabled with event selectors (or advanced event selectors for field
-  filtering) on the artifacts, manifests, evidence, and audit buckets, and they
-  are billed separately. Without data events, "who read this dataset" has no
-  answer.
-- Log file integrity validation, when enabled, delivers signed digest files next
-  to the logs. That produces the material; the validation still has to be run
-  (`aws cloudtrail validate-logs`) against the files in their original S3
-  location.
-- CloudTrail validates CloudTrail's own logs. It does not authenticate this
-  project's evidence bundles or audit JSONL; those rely on the KMS signature from
-  section G.
+Log file integrity validation, when enabled on the trail, delivers signed digest
+files alongside the logs. That produces the material for validation; the
+validation itself still has to be run (`aws cloudtrail validate-logs`) against the
+files in their original S3 location. CloudTrail validates CloudTrail's own logs.
+It does not authenticate this project's evidence bundles or audit JSONL; those
+still rely on the KMS signature from section G.
 
 Missing: nothing in code; this is account configuration. The auditor runbook
 should include the validate-logs command and which buckets have data events on.
 
-### I. AWS Systems Manager: how people get in
+## I. AWS Systems Manager
 
-What it does here: Session Manager replaces SSH. No inbound port, no key pair,
-no public IP. Parameter Store or Run Command distributes `settings.json`
-changes; today's "restart the Compose service after a Python change" becomes a
-Run Command or a new AMI.
-
-Watch out for:
-
-- Private instances need SSM Agent on the AMI, an instance role that includes
-  `AmazonSSMManagedInstanceCore`, and reachable `ssm` and `ssmmessages` endpoints
-  over HTTPS, which with no internet gateway means the interface endpoints from
-  section B.
-- `ec2messages` is supported only in regions launched before 2024, and agents
-  from 3.3.40.0 prefer `ssmmessages` when available. Check the chosen agent and
-  region rather than requiring all three. See the
-  [agent endpoint reference](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-messageAPIs.html).
-- Session logging to CloudWatch Logs or S3 is optional and needs extra
-  permissions.
+Administrative access uses Session Manager instead of SSH: no inbound port, no
+key pair, no public IP. Requirements for private instances are SSM Agent on the
+AMI, an instance role that includes `AmazonSSMManagedInstanceCore`, and reachable
+`ssm` and `ssmmessages` endpoints over HTTPS, which in a VPC with
+no internet gateway means the interface endpoints from section B. `ec2messages`
+is supported only in regions launched before 2024; agents from 3.3.40.0 prefer
+`ssmmessages` when available. Check the chosen agent and region rather than
+requiring all three. [Agent endpoint reference](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-messageAPIs.html). Session
+logging to CloudWatch Logs or S3 is optional and needs extra permissions. Parameter
+Store or Run Command can distribute `settings.json` changes; the current Compose
+practice of restarting a service after a Python change becomes a Run Command or a
+new AMI.
 
 Missing: an AMI with the agent; a decision on session logging; a parameter layout
 for configuration.
 
-### J. Optional: Amazon Braket
+## J. Optional: Amazon Braket
 
-Braket extends the quantum detector research in lessons 5 through 8. It is not
-part of the telemetry, network, or integrity path, and nothing above depends on
-it. If used, it runs from the benchmark CLI, outside the VPC, under a separate
-role with `braket:CreateQuantumTask` and write access to a results bucket. The
-PennyLane plugin is `amazon-braket-pennylane-plugin` with the `braket.aws.qubit`
-device.
-
-Watch out for: device availability changes. The official device page currently
-lists managed simulators SV1 and DM1 and QPUs from several providers, with ARNs
-that differ from the examples in lesson 8, and TN1 is no longer listed among
-current simulators. Read the device list and the pricing page before planning a
-run rather than copying any ARN or cost figure from this repository.
+Braket is an extension of the original quantum-detector research in lessons 5
+through 8, not part of the telemetry, network, or integrity path, and nothing
+above depends on it. If used, it runs from the benchmark CLI, outside the VPC,
+under a separate role with `braket:CreateQuantumTask` and write access to a
+results bucket. The PennyLane plugin is `amazon-braket-pennylane-plugin` with the
+`braket.aws.qubit` device. Device availability changes: the official device page
+currently lists managed simulators SV1 and DM1 and QPUs from several providers,
+with ARNs that differ from the examples in lesson 8, and TN1 is no longer listed
+among current simulators. Read the device list and the pricing page before
+planning a run rather than copying any ARN or cost figure from this repository.
 
 Missing: a Braket device option in `QuantumConfig`, result handling for
 `s3_destination_folder`, and a recorded run in `results.md`.
 
-## How data moves
+## Flows
 
-**Telemetry.** The workload publishes GPU samples (simulated, or agent collected
-for the real option) to CloudWatch with source identity and event time. The
+**Telemetry.** Workload instance publishes GPU samples (simulated, or agent
+collected for the real option) to CloudWatch with source identity and event time;
 collector reads them through a CloudWatch adapter into `TelemetryBatch.gpu`.
 
-**Network.** Zeek on the workload host or on a mirror sensor writes `conn.log`.
-OpenCanary writes its event log on the decoy. Both ship to CloudWatch Logs and
-stay on local disk for the collector's seconds level reads. Flow Logs, if enabled,
+**Network.** Zeek on the workload host or on a mirror sensor writes `conn.log`;
+OpenCanary writes its event log on the decoy; both ship to CloudWatch Logs and
+stay on local disk for the collector's seconds-level reads. Flow Logs, if enabled,
 land in S3 as a slower, aggregated second opinion.
 
-**Artifacts.** The publisher uploads a dataset or model, records its version id,
-builds the manifest, signs it with the manifest key, and uploads the manifest and
-the signed pointer. The workload reads only the versions the pointer's manifest
-names and verifies the signature before use. Step by step:
+**Artifacts.** Publisher uploads a dataset or model to the artifacts bucket,
+records its version id, builds the manifest, signs it with the manifest key,
+uploads the manifest and the signed pointer. Workload reads only the versions the
+pointer's manifest names and verifies the signature before use. Approval sequence:
 
 ```text
 publisher: PutObject artifact  ->  version id V
@@ -378,39 +313,39 @@ workload : GetObject artifact @ V  ->  sha256 == manifest entry  ->  consume tho
 auditor  : same reads, kms:Verify, plus CloudTrail data events for who wrote what
 ```
 
-**Evidence.** The collector exports a snapshot, seals it (digest plus `kms:Sign`
-by the collector role), writes it to the evidence bucket under Object Lock, and
-appends the audit record. The auditor verifies with `kms:Verify` and replays with
+**Evidence.** Collector exports a snapshot, seals it (digest plus `kms:Sign` by the
+collector role), writes it to the evidence bucket under Object Lock, and appends
+the audit record. Auditor verifies with `kms:Verify` and replays with
 `python -m qdc_anomaly.lab replay`.
 
-## What changes in the code
+## Mapping from existing code
 
 | Existing boundary | AWS counterpart | Change needed |
 |---|---|---|
 | `SourceAdapter.read(CollectionContext)` | CloudWatch metrics and logs adapters | New adapter classes; `Collector` signature unchanged. |
 | `TelemetryBatch` and rule packs | Unchanged | None. Rules run on the monitoring instance. |
 | `storage.append_event` for evidence files | Local disk plus upload of sealed exports | Upload step after `seal_evidence`. |
-| `security.assets.AssetInventory` | Exact S3 bucket and object version bindings | Optional schema 2 `location` exists; remote only inventory loading and cloud configuration are missing. |
-| `security.authenticators.Authenticator` | KMS Sign/Verify or GenerateMac/VerifyMac | Interface exists; implement a KMS adapter with explicit algorithm and digest semantics. Only local HMAC ships. |
-| `security.backends.ArtifactBackend` | S3 reads, conditional writes, digests, listing | Interface exists; implement an S3 adapter with version binding and cloud error handling. Only local directory storage ships. |
-| `security.store.GuardedStore` | Same policy decisions over a supplied backend | Injection exists; IAM enforcement and caller authentication remain future work. |
-| `security.integrity.BaselineStore` | Remote manifests and approval pointer | Still filesystem based; needs persistence and concurrency work. The artifact interface alone does not move these files. |
-| `security.audit.AuditLog` | Local JSONL plus uploaded batch objects | Upload, retention, and write once controls are missing; the schema can stay. |
-| `python -m qdc_anomaly.security verify` | Auditor job | The CLI builds local implementations only; cloud configuration and wiring are missing. |
+| `security.assets.AssetInventory` | Exact S3 bucket and object version bindings | Optional schema 2 `location` now exists; remote-only inventory loading and cloud configuration remain missing. |
+| `security.authenticators.Authenticator` | KMS Sign/Verify or GenerateMac/VerifyMac | Interface exists; implement a KMS adapter with explicit algorithm/digest semantics. Only local HMAC ships. |
+| `security.backends.ArtifactBackend` | S3 artifact reads, conditional writes, digests, and listing | Interface exists; implement an S3 adapter with version binding and cloud error handling. Only local directory storage ships. |
+| `security.store.GuardedStore` | Same policy decisions over a supplied backend | Injection exists; IAM enforcement and caller authentication remain separate future work. |
+| `security.integrity.BaselineStore` | Remote manifests and approval pointer | Still filesystem-based; needs separate persistence and concurrency work. The artifact interface alone does not move these files. |
+| `security.audit.AuditLog` | Local JSONL plus uploaded batch objects | Upload, retention, and write-once controls are missing; schema can remain. |
+| `python -m qdc_anomaly.security verify` | Auditor job | CLI currently constructs local implementations only; cloud configuration/wiring remains missing. |
 
-## Limits
+## Limitations and validation requirements
 
 - Running this proposal needs account configuration, images, and policies that do
-  not exist here. Local interfaces are implemented; the cloud adapters and
-  deployment work in the "Missing" lines are not.
-- Mirrored traffic must be compared with host local capture before any claim that
-  findings match the local lab. Expect differences in timing and drops.
-- Flow Logs cannot support the current seconds level rules without a redesign and
-  a new validation cycle.
-- The GPU path stays simulated until a GPU instance, driver, and collector are set
-  up and the adapter is validated against real units (MB versus MiB, sampling
-  period semantics).
-- An instance role is a host identity. Process level attribution of a GPU
+  not exist here. Local interfaces are implemented; cloud adapters and deployment
+  work listed in the "missing" rows are not.
+- Mirrored traffic must be compared against host-local capture before any claim
+  that findings match the local lab. Expect differences in timing and drops.
+- Flow Logs cannot support the current seconds-level rules without redesign and a
+  new validation cycle.
+- The GPU path remains simulated until a GPU instance, driver, and collector are
+  set up and the adapter is validated against real units (MB versus MiB,
+  sampling period semantics).
+- An instance role is a host identity. Process-level attribution of a GPU
   allocation and a socket is still not solved by this design.
 - IAM enforces what the local store can only promise, but only through the
   services; a compromised instance can still read anything its role can read.
